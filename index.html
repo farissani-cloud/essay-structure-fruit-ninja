@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Progressive Challenge</title>
+    <title>Tropical Essay Slice - High Speed Edition</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -102,10 +102,9 @@
 
 <div id="game-container">
     <div id="ui-layer">
-        <b>B1-B2 Progression</b><br>
+        <b>B1-B2 Fast Mode</b><br>
         Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
-        Remaining: <span id="q-remaining">25</span><br>
-        Intensity: <span id="speed-level">100%</span>
+        Remaining: <span id="q-remaining">25</span>
     </div>
 
     <div id="audio-controls">
@@ -116,9 +115,9 @@
 
     <div id="start-screen" class="modal" style="display: flex;">
         <div class="modal-content">
-            <h1 style="color: var(--ocean-blue)">Progressive Tropical Slice</h1>
-            <p>The more questions you answer, the faster the fruit flies!<br>Intermediate start -> Expert finish.</p>
-            <button class="btn-action" onclick="startGame()">START ADVENTURE</button>
+            <h1 style="color: var(--ocean-blue)">Fast Tropical Slice</h1>
+            <p>The fruits are moving faster now! <br>Master your essay structure to win.</p>
+            <button class="btn-action" onclick="startGame()">START SESSION</button>
         </div>
     </div>
 
@@ -155,7 +154,7 @@ function playSwoosh() {
     osc.start(); osc.stop(audioCtx.currentTime + 0.1);
 }
 
-// --- QUESTIONS ---
+// --- B1-B2 LEVEL QUESTIONS ---
 const masterQuestions = [
     { q: "Which word is best to start a paragraph with a NEW idea?", options: ["Furthermore", "However", "In addition", "Overall"], answer: 2 },
     { q: "What is the main goal of the 'Introduction'?", options: ["To give every detail", "To state the thesis and background", "To list the bibliography", "To say goodbye"], answer: 1 },
@@ -190,9 +189,6 @@ let fruits = [];
 let lastTime = 0;
 let mousePos = { x: 0, y: 0, prevX: 0, prevY: 0, down: false };
 
-// --- PROGRESSION VARIABLES ---
-let difficultyMultiplier = 1.0; 
-
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
@@ -204,14 +200,12 @@ class Fruit {
         this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
         this.y = canvas.height + this.radius;
         
-        // INTERMEDIATE START -> SCALES UP
-        // Base gravity is roughly intermediate. Scale up based on progress.
-        this.gravity = canvas.height * 0.55 * difficultyMultiplier; 
-        
-        // Launch force scales with gravity to maintain flight curve height
-        let verticalForce = Math.sqrt(2 * (canvas.height * 0.75) * this.gravity); 
+        // --- FAST SPEED PHYSICS ---
+        // Increased gravity and launch velocity
+        this.gravity = canvas.height * 0.85; 
+        let verticalForce = Math.sqrt(2 * (canvas.height * 0.9) * this.gravity); 
         this.vy = -verticalForce; 
-        this.vx = (Math.random() - 0.5) * (canvas.width * 0.3) * difficultyMultiplier;
+        this.vx = (Math.random() - 0.5) * (canvas.width * 0.4);
         
         this.label = ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
         this.sliced = false;
@@ -229,7 +223,7 @@ class Fruit {
 function startGame() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     bgMusic.play();
-    score = 0; lives = 3; difficultyMultiplier = 1.0;
+    score = 0; lives = 3;
     availableQuestions = JSON.parse(JSON.stringify(masterQuestions));
     document.getElementById('start-screen').style.display = 'none';
     gameActive = true;
@@ -245,9 +239,8 @@ function gameLoop(timestamp) {
     if (dt > 0.1) dt = 0.1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Spawn rate also increases slightly as difficulty goes up
-    let spawnRate = 0.015 * difficultyMultiplier;
-    if (Math.random() < Math.min(spawnRate, 0.04)) fruits.push(new Fruit());
+    // Increased spawn rate for fast mode
+    if (Math.random() < 0.025) fruits.push(new Fruit());
 
     for (let i = fruits.length - 1; i >= 0; i--) {
         let f = fruits[i]; f.update(dt); f.draw();
@@ -260,18 +253,19 @@ function gameLoop(timestamp) {
         }
         if (f.y > canvas.height + 100) {
             fruits.splice(i, 1); lives--; updateUI();
-            if (lives <= 0) endGame("The storm caught up! Refresh to try again.");
+            if (lives <= 0) endGame("Island Storm! Try again to master the structure.");
         }
     }
     drawSlice(); requestAnimationFrame(gameLoop);
 }
 
 function triggerQuestion() {
-    if (availableQuestions.length === 0) { endGame("Master Scholar! You conquered the progressive heights!"); return; }
+    if (availableQuestions.length === 0) { endGame("Legendary Scholar! You finished the B1-B2 course!"); return; }
     const modal = document.getElementById('question-modal');
     const container = document.getElementById('options-container');
     const feedback = document.getElementById('answer-feedback');
     
+    // --- NO REPEAT LOGIC ---
     const qIndex = Math.floor(Math.random() * availableQuestions.length);
     const q = availableQuestions.splice(qIndex, 1)[0]; 
 
@@ -284,16 +278,12 @@ function triggerQuestion() {
         b.className = 'option-btn'; b.innerText = opt;
         b.onclick = () => {
             if (idx === q.answer) {
-                score += 10; 
-                // Increase difficulty by 4% per correct answer
-                difficultyMultiplier += 0.04;
-                updateUI(); 
-                feedback.innerText = "Correct! Intensity Increased 📈";
+                score += 10; updateUI(); feedback.innerText = "Correct! 🌴";
                 feedback.style.color = "var(--palm-green)";
                 document.getElementById('continue-btn').style.display = "block";
                 Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
-                feedback.innerText = "Try again! ❌";
+                feedback.innerText = "Not quite! ❌";
                 feedback.style.color = "var(--sunset-orange)";
             }
         };
@@ -312,7 +302,6 @@ function updateUI() {
     document.getElementById('score').innerText = score;
     document.getElementById('lives').innerText = lives;
     document.getElementById('q-remaining').innerText = availableQuestions.length;
-    document.getElementById('speed-level').innerText = Math.round(difficultyMultiplier * 100) + "%";
 }
 
 function endGame(msg) { gameActive = false; alert(msg + "\nFinal Score: " + score); location.reload(); }
