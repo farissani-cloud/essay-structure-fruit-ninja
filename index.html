@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Fixed Baton</title>
+    <title>Baton Essay Slice - Bombs & Blades</title>
     <style>
         :root {
             --ocean-blue: #0077be;
             --sand-yellow: #f4d03f;
             --palm-green: #2ecc71;
             --sunset-orange: #e67e22;
-            --hibiscus-pink: #ff69b4;
-            --text-dark: #2c3e50;
+            --hibiscus-pink: #ff1493;
+            --volcano-red: #c0392b;
         }
 
         body, html {
@@ -24,18 +24,10 @@
             user-select: none;
         }
 
-        #game-container {
-            position: relative;
-            width: 100vw; height: 100vh;
-            background: linear-gradient(to bottom, #87CEEB 0%, #fdfaf0 100%);
-        }
-
         canvas { 
             display: block; 
-            position: absolute;
-            top: 0; left: 0;
-            z-index: 5;
             cursor: none; 
+            z-index: 5;
         }
 
         #ui-layer {
@@ -49,27 +41,12 @@
             z-index: 100;
         }
 
-        #audio-controls {
-            position: absolute;
-            top: 10px; right: 10px;
-            z-index: 100;
-        }
-
-        .audio-btn {
-            background: var(--palm-green);
-            border: none; border-radius: 50%;
-            width: 44px; height: 44px;
-            cursor: pointer; font-size: 20px;
-            box-shadow: 0 4px 0 #27ae60;
-            pointer-events: auto;
-        }
-
         .modal {
             display: none;
             position: fixed;
             z-index: 300;
             left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
+            background-color: rgba(0, 0, 0, 0.7);
             justify-content: center; align-items: center;
         }
 
@@ -80,7 +57,6 @@
             border: 6px solid var(--sand-yellow);
             max-width: 85%;
             text-align: center;
-            pointer-events: auto;
         }
 
         .option-btn {
@@ -106,36 +82,29 @@
 </head>
 <body>
 
-<div id="game-container">
-    <div id="ui-layer">
-        <b>B1-B2 Progression</b><br>
-        Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
-        Remaining: <span id="q-remaining">25</span><br>
-        Speed: <span id="speed-level">100%</span>
+<div id="ui-layer">
+    <b>B1-B2 Expert</b><br>
+    Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
+    Avoid the 🌋 Bombs!
+</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="start-screen" class="modal" style="display: flex;">
+    <div class="modal-content">
+        <h1 style="color: var(--ocean-blue)">Baton & Bombs</h1>
+        <p><b>Swipe</b> through fruits to answer.<br><b>Avoid</b> the Volcanic Bombs 🌋 or it's Game Over!</p>
+        <button class="btn-action" onclick="startGame()">START MISSION</button>
     </div>
+</div>
 
-    <div id="audio-controls">
-        <button class="audio-btn" id="mute-toggle">🔊</button>
-    </div>
-
-    <canvas id="gameCanvas"></canvas>
-
-    <div id="start-screen" class="modal" style="display: flex;">
-        <div class="modal-content">
-            <h1 style="color: var(--ocean-blue)">Baton Essay Slice</h1>
-            <p>Swiftly swipe through the fruits!<br>Difficulty increases with every correct answer.</p>
-            <button class="btn-action" onclick="startGame()">START ADVENTURE</button>
-        </div>
-    </div>
-
-    <div id="question-modal" class="modal">
-        <div class="modal-content">
-            <h2 style="color: var(--palm-green)">Structure Fragment</h2>
-            <p id="question-text" style="font-weight: bold;"></p>
-            <div id="options-container"></div>
-            <div id="answer-feedback" style="font-weight: bold; margin: 10px; min-height: 20px;"></div>
-            <button id="continue-btn" class="btn-action" style="display:none;">CONTINUE</button>
-        </div>
+<div id="question-modal" class="modal">
+    <div class="modal-content">
+        <h2 style="color: var(--palm-green)">Structure Check</h2>
+        <p id="question-text" style="font-weight: bold;"></p>
+        <div id="options-container"></div>
+        <div id="answer-feedback" style="font-weight: bold; margin: 10px; min-height: 20px;"></div>
+        <button id="continue-btn" class="btn-action" style="display:none;">CONTINUE</button>
     </div>
 </div>
 
@@ -146,35 +115,24 @@
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const bgMusic = document.getElementById('bg-music');
 
-let isMuted = false;
 let gameActive = false;
 let score = 0;
 let lives = 3;
-let difficultyMultiplier = 1.0;
-let fruits = [];
+let difficulty = 1.0;
+let objects = [];
 let trail = [];
 let lastTime = 0;
 let availableQuestions = [];
 
-const masterQuestions = [
-    { q: "Which word is best to start a paragraph with a NEW idea?", options: ["Furthermore", "However", "In addition", "Overall"], answer: 2 },
-    { q: "What is the main goal of the 'Introduction'?", options: ["To give every detail", "To state the thesis and background", "To list the bibliography", "To say goodbye"], answer: 1 },
+const questions = [
     { q: "Which transition shows a 'Cause and Effect'?", options: ["For example", "Because of this", "On the other hand", "Firstly"], answer: 1 },
-    { q: "In an essay, what does 'To conclude' mean?", options: ["To start the essay", "To give more evidence", "To summarize the main points", "To ask a new question"], answer: 2 },
-    { q: "Which phrase is more formal than 'I think'?", options: ["It is often argued that", "In my brain", "I believe", "I'm saying"], answer: 0 },
-    { q: "What is a 'Topic Sentence'?", options: ["The last sentence", "The sentence that gives the main idea of a paragraph", "A sentence about the weather", "The title of the book"], answer: 1 },
-    { q: "Which word shows a 'Contrast'?", options: ["Moreover", "Similarly", "However", "Consequently"], answer: 2 },
-    { q: "A good essay should be divided into:", options: ["One long text", "Paragraphs", "Short bullet points", "Numbered lists only"], answer: 1 },
+    { q: "A 'Topic Sentence' is used to:", options: ["End the essay", "Introduce the paragraph's main idea", "Check spelling", "List references"], answer: 1 },
     { q: "Which word adds information?", options: ["Alternatively", "Additionally", "Instead", "Unless"], answer: 1 },
-    { q: "The 'Thesis Statement' is usually found in the:", options: ["Conclusion", "Body Paragraph", "Introduction", "Reference List"], answer: 2 }
-    // ... truncated for brevity, but logically contains 25 items in actual play
+    { q: "The 'Thesis Statement' belongs in the:", options: ["Conclusion", "Body Paragraph", "Introduction", "Page Header"], answer: 2 },
+    { q: "Formal writing should avoid:", options: ["Facts", "Contractions (e.g., don't)", "Transitions", "Third person"], answer: 1 }
 ];
-
-// Initialize more questions to fulfill the "25 remaining" count
-for(let i=0; i<15; i++) masterQuestions.push(masterQuestions[i%10]);
 
 function resize() {
     canvas.width = window.innerWidth;
@@ -183,88 +141,50 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-class Fruit {
-    constructor() {
-        this.radius = Math.min(canvas.width * 0.08, 55);
-        this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
-        this.y = canvas.height + this.radius;
-        this.gravity = canvas.height * 0.55 * difficultyMultiplier; 
-        let verticalForce = Math.sqrt(2 * (canvas.height * 0.75) * this.gravity); 
-        this.vy = -verticalForce; 
-        this.vx = (Math.random() - 0.5) * (canvas.width * 0.3) * difficultyMultiplier;
-        this.label = ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
-        this.sliced = false;
+class GameObject {
+    constructor(isBomb) {
+        this.radius = 45;
+        this.x = Math.random() * (canvas.width - 100) + 50;
+        this.y = canvas.height + 50;
+        this.isBomb = isBomb;
+        this.gravity = 600 * difficulty;
+        this.vy = -Math.sqrt(2 * (canvas.height * 0.8) * this.gravity);
+        this.vx = (Math.random() - 0.5) * 200;
+        this.label = isBomb ? '🌋' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
     }
 
     update(dt) {
         this.x += this.vx * dt;
         this.y += this.vy * dt;
         this.vy += this.gravity * dt;
-        if(this.x < this.radius || this.x > canvas.width - this.radius) this.vx *= -1;
     }
 
     draw() {
-        ctx.font = `${this.radius * 1.5}px Arial`;
+        ctx.font = "60px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(this.label, this.x, this.y);
     }
 }
 
-function playSwoosh() {
-    if (isMuted) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-}
-
-function drawBaton() {
-    if (trail.length < 2) return;
-    
-    ctx.lineJoin = "round";
-    ctx.lineCap = "round";
-
-    for (let i = 0; i < trail.length - 1; i++) {
-        const p1 = trail[i];
-        const p2 = trail[i+1];
-        const alpha = i / trail.length;
-        const width = alpha * 15;
-
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 105, 180, ${alpha})`;
-        ctx.lineWidth = width;
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-    }
-    
-    // Glowing tip
-    const last = trail[trail.length - 1];
-    ctx.beginPath();
-    ctx.arc(last.x, last.y, 5, 0, Math.PI * 2);
-    ctx.fillStyle = "white";
-    ctx.fill();
-}
-
-function checkSlicing(f) {
+function checkCollision(obj) {
     if (trail.length < 2) return false;
+    
+    // Check line segment intersection with circle
     const p1 = trail[trail.length - 2];
     const p2 = trail[trail.length - 1];
+    
+    // Calculate distance between points to ensure it's a swipe, not a tap
+    const swipeDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+    if (swipeDist < 5) return false; // Too slow/short to be a slice
 
-    // Distance from fruit center to the line segment p1-p2
     const dx = p2.x - p1.x;
     const dy = p2.y - p1.y;
-    const t = ((f.x - p1.x) * dx + (f.y - p1.y) * dy) / (dx * dx + dy * dy);
-    const nearestX = p1.x + Math.max(0, Math.min(1, t)) * dx;
-    const nearestY = p1.y + Math.max(0, Math.min(1, t)) * dy;
-    const dist = Math.hypot(f.x - nearestX, f.y - nearestY);
-
-    return dist < f.radius;
+    const t = ((obj.x - p1.x) * dx + (obj.y - p1.y) * dy) / (dx * dx + dy * dy);
+    const closestX = p1.x + Math.max(0, Math.min(1, t)) * dx;
+    const closestY = p1.y + Math.max(0, Math.min(1, t)) * dy;
+    
+    return Math.hypot(obj.x - closestX, obj.y - closestY) < obj.radius;
 }
 
 function gameLoop(timestamp) {
@@ -275,34 +195,60 @@ function gameLoop(timestamp) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (gameActive) {
-        if (Math.random() < 0.015 * difficultyMultiplier) fruits.push(new Fruit());
+        if (Math.random() < 0.02) {
+            const isBomb = Math.random() < 0.15; // 15% chance for a bomb
+            objects.push(new GameObject(isBomb));
+        }
 
-        for (let i = fruits.length - 1; i >= 0; i--) {
-            let f = fruits[i];
-            f.update(dt);
-            f.draw();
+        for (let i = objects.length - 1; i >= 0; i--) {
+            let obj = objects[i];
+            obj.update(dt);
+            obj.draw();
 
-            if (checkSlicing(f)) {
-                playSwoosh();
-                fruits.splice(i, 1);
-                gameActive = false;
-                triggerQuestion();
+            if (checkCollision(obj)) {
+                if (obj.isBomb) {
+                    endGame("BOOM! You sliced a Volcanic Bomb!");
+                    return;
+                } else {
+                    objects.splice(i, 1);
+                    gameActive = false;
+                    triggerQuestion();
+                }
             }
 
-            if (f.y > canvas.height + 150) {
-                fruits.splice(i, 1);
-                lives--;
+            if (obj.y > canvas.height + 100) {
+                if (!obj.isBomb) lives--;
+                objects.splice(i, 1);
                 updateUI();
-                if (lives <= 0) endGame("Storm Warning! Try again.");
+                if (lives <= 0) endGame("Out of lives! The library is lost.");
             }
         }
     }
 
     drawBaton();
-    // Slowly fade the trail
+    
+    // Trail decay
     if (trail.length > 0) trail.shift();
 
     requestAnimationFrame(gameLoop);
+}
+
+function drawBaton() {
+    if (trail.length < 2) return;
+    
+    ctx.beginPath();
+    for (let i = 0; i < trail.length - 1; i++) {
+        const p1 = trail[i];
+        const p2 = trail[i+1];
+        const pct = i / trail.length;
+        
+        ctx.lineWidth = pct * 18;
+        ctx.strokeStyle = `rgba(255, 20, 147, ${pct})`;
+        ctx.lineCap = "round";
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+    }
 }
 
 function triggerQuestion() {
@@ -310,13 +256,7 @@ function triggerQuestion() {
     const container = document.getElementById('options-container');
     const feedback = document.getElementById('answer-feedback');
     
-    if (availableQuestions.length === 0) {
-        endGame("Island Legend! You solved them all.");
-        return;
-    }
-
-    const qIndex = Math.floor(Math.random() * availableQuestions.length);
-    const q = availableQuestions.splice(qIndex, 1)[0]; 
+    const q = questions[Math.floor(Math.random() * questions.length)];
 
     document.getElementById('question-text').innerText = q.q;
     container.innerHTML = "";
@@ -330,15 +270,14 @@ function triggerQuestion() {
         b.onclick = () => {
             if (idx === q.answer) {
                 score += 10;
-                difficultyMultiplier += 0.05;
+                difficulty += 0.05;
                 updateUI();
-                feedback.innerText = "Correct! 🌴";
+                feedback.innerText = "Correct! Progressing... 🌴";
                 feedback.style.color = "var(--palm-green)";
                 document.getElementById('continue-btn').style.display = "block";
-                Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
-                feedback.innerText = "Try again! ❌";
-                feedback.style.color = "var(--sunset-orange)";
+                feedback.innerText = "Incorrect! ❌";
+                feedback.style.color = "var(--volcano-red)";
             }
         };
         container.appendChild(b);
@@ -348,55 +287,41 @@ function triggerQuestion() {
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
+    trail = []; // Clear trail so we don't instant-slice the next fruit
     gameActive = true;
-    lastTime = performance.now();
 };
 
 function startGame() {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
     bgMusic.play();
-    score = 0; lives = 3; difficultyMultiplier = 1.0;
-    availableQuestions = [...masterQuestions];
+    score = 0; lives = 3; difficulty = 1.0;
+    objects = [];
     document.getElementById('start-screen').style.display = 'none';
     gameActive = true;
-    lastTime = performance.now();
     updateUI();
 }
 
 function updateUI() {
     document.getElementById('score').innerText = score;
     document.getElementById('lives').innerText = lives;
-    document.getElementById('q-remaining').innerText = availableQuestions.length;
-    document.getElementById('speed-level').innerText = Math.round(difficultyMultiplier * 100) + "%";
 }
 
 function endGame(msg) {
     gameActive = false;
-    alert(msg + "\nFinal Score: " + score);
+    alert(msg);
     location.reload();
 }
 
-// Input Handlers
-function handleInput(e) {
+function handleMove(e) {
     const x = e.clientX || (e.touches && e.touches[0].clientX);
     const y = e.clientY || (e.touches && e.touches[0].clientY);
-    if (x !== undefined && y !== undefined) {
+    if (x && y) {
         trail.push({ x, y });
-        if (trail.length > 12) trail.shift();
+        if (trail.length > 15) trail.shift();
     }
 }
 
-window.addEventListener('mousemove', handleInput);
-window.addEventListener('touchmove', (e) => {
-    handleInput(e);
-    e.preventDefault();
-}, { passive: false });
-
-document.getElementById('mute-toggle').onclick = (e) => {
-    isMuted = !isMuted;
-    bgMusic.muted = isMuted;
-    e.target.innerText = isMuted ? "🌑" : "🔊";
-};
+window.addEventListener('mousemove', handleMove);
+window.addEventListener('touchmove', (e) => { handleMove(e); e.preventDefault(); }, { passive: false });
 
 requestAnimationFrame(gameLoop);
 </script>
