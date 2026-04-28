@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - B1/B2 Proficiency</title>
+    <title>Tropical Essay Slice - Baton Edition</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -32,7 +32,7 @@
             background: linear-gradient(to bottom, #87CEEB 0%, #fdfaf0 100%);
         }
 
-        canvas { display: block; }
+        canvas { display: block; cursor: none; } /* Hide standard cursor for baton */
 
         #ui-layer {
             position: absolute;
@@ -43,7 +43,6 @@
             border: 3px solid var(--sand-yellow);
             pointer-events: none;
             z-index: 10;
-            font-size: 14px;
         }
 
         #audio-controls {
@@ -103,9 +102,10 @@
 
 <div id="game-container">
     <div id="ui-layer">
-        <b>Tropical Essay Slice</b><br>
+        <b>B1-B2 Progression</b><br>
         Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
-        Remaining: <span id="q-remaining">25</span>
+        Remaining: <span id="q-remaining">25</span><br>
+        Intensity: <span id="speed-level">100%</span>
     </div>
 
     <div id="audio-controls">
@@ -116,9 +116,9 @@
 
     <div id="start-screen" class="modal" style="display: flex;">
         <div class="modal-content">
-            <h1 style="color: var(--ocean-blue)">B1-B2 Essay Slice</h1>
-            <p>Master your essay structure and transitions!<br>Slice the slow-moving fruit to start.</p>
-            <button class="btn-action" onclick="startGame()">START LESSON</button>
+            <h1 style="color: var(--ocean-blue)">Baton Essay Slice</h1>
+            <p>Use the slicing baton to recover fragments!<br>Speed starts at 100% and increases.</p>
+            <button class="btn-action" onclick="startGame()">START ADVENTURE</button>
         </div>
     </div>
 
@@ -142,8 +142,17 @@ const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 const bgMusic = document.getElementById('bg-music');
 let isMuted = false;
 
-function playSwoosh() { if (!isMuted) { /* Procedural sound same as before */ } }
-function playCorrect() { if (!isMuted) { /* Procedural sound same as before */ } }
+function playSwoosh() {
+    if (isMuted) return;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+}
 
 const masterQuestions = [
     { q: "Which word is best to start a paragraph with a NEW idea?", options: ["Furthermore", "However", "In addition", "Overall"], answer: 2 },
@@ -177,7 +186,12 @@ let availableQuestions = [];
 let score = 0, lives = 3, gameActive = false;
 let fruits = [];
 let lastTime = 0;
-let mousePos = { x: 0, y: 0, prevX: 0, prevY: 0, down: false };
+let difficultyMultiplier = 1.0;
+
+// --- BATON CURSOR STATE ---
+let trail = [];
+const MAX_TRAIL = 8; 
+let mousePos = { x: 0, y: 0, down: false };
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
@@ -189,10 +203,10 @@ class Fruit {
         this.radius = Math.min(canvas.width * 0.08, 55);
         this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
         this.y = canvas.height + this.radius;
-        this.gravity = canvas.height * 0.3; // Slower fall
-        let verticalForce = Math.sqrt(2 * (canvas.height * 0.6) * this.gravity); 
+        this.gravity = canvas.height * 0.55 * difficultyMultiplier; 
+        let verticalForce = Math.sqrt(2 * (canvas.height * 0.75) * this.gravity); 
         this.vy = -verticalForce; 
-        this.vx = (Math.random() - 0.5) * (canvas.width * 0.2);
+        this.vx = (Math.random() - 0.5) * (canvas.width * 0.3) * difficultyMultiplier;
         this.label = ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
         this.sliced = false;
     }
@@ -209,7 +223,7 @@ class Fruit {
 function startGame() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     bgMusic.play();
-    score = 0; lives = 3;
+    score = 0; lives = 3; difficultyMultiplier = 1.0;
     availableQuestions = JSON.parse(JSON.stringify(masterQuestions));
     document.getElementById('start-screen').style.display = 'none';
     gameActive = true;
@@ -219,48 +233,103 @@ function startGame() {
 }
 
 function gameLoop(timestamp) {
-    if (!gameActive) return;
+    if (!gameActive) {
+        drawBaton(); // Keep cursor alive even if paused
+        return;
+    }
     let dt = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
     if (dt > 0.1) dt = 0.1;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (Math.random() < 0.012) fruits.push(new Fruit());
+    
+    let spawnRate = 0.015 * difficultyMultiplier;
+    if (Math.random() < Math.min(spawnRate, 0.04)) fruits.push(new Fruit());
+
     for (let i = fruits.length - 1; i >= 0; i--) {
         let f = fruits[i]; f.update(dt); f.draw();
-        if (mousePos.down && !f.sliced) {
-            if (Math.hypot(f.x - mousePos.x, f.y - mousePos.y) < f.radius * 1.6) {
-                f.sliced = true; fruits.splice(i, 1); gameActive = false; triggerQuestion();
+        
+        // Slicing logic using trail distance
+        if (mousePos.down && trail.length > 1) {
+            let dist = Math.hypot(f.x - mousePos.x, f.y - mousePos.y);
+            if (dist < f.radius * 1.5) {
+                f.sliced = true; 
+                playSwoosh();
+                fruits.splice(i, 1); 
+                gameActive = false; 
+                triggerQuestion();
             }
         }
+
         if (f.y > canvas.height + 100) {
             fruits.splice(i, 1); lives--; updateUI();
-            if (lives <= 0) endGame("Keep practicing! Restart to try again.");
+            if (lives <= 0) endGame("The Essay Storm was too strong! Try again.");
         }
     }
-    drawSlice(); requestAnimationFrame(gameLoop);
+
+    drawBaton();
+    requestAnimationFrame(gameLoop);
+}
+
+function drawBaton() {
+    // Add current pos to trail
+    trail.push({ x: mousePos.x, y: mousePos.y });
+    if (trail.length > MAX_TRAIL) trail.shift();
+
+    if (trail.length < 2) return;
+
+    // Slicing trail design
+    ctx.beginPath();
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+
+    for (let i = 0; i < trail.length - 1; i++) {
+        let p1 = trail[i];
+        let p2 = trail[i+1];
+        
+        // Tapered thickness: end of trail is thin, tip is thick
+        ctx.lineWidth = (i / trail.length) * 12; 
+        ctx.strokeStyle = `rgba(255, 105, 180, ${i / trail.length})`; // Pink hibiscus fade
+        
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+    }
+
+    // Glowing tip
+    ctx.beginPath();
+    ctx.arc(mousePos.x, mousePos.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = "white";
+    ctx.fill();
 }
 
 function triggerQuestion() {
-    if (availableQuestions.length === 0) { endGame("Excellent! You've mastered the B1-B2 structure!"); return; }
     const modal = document.getElementById('question-modal');
     const container = document.getElementById('options-container');
     const feedback = document.getElementById('answer-feedback');
+    
     const qIndex = Math.floor(Math.random() * availableQuestions.length);
     const q = availableQuestions.splice(qIndex, 1)[0]; 
+
     document.getElementById('question-text').innerText = q.q;
     container.innerHTML = ""; feedback.innerText = "";
     document.getElementById('continue-btn').style.display = "none";
+    
     q.options.forEach((opt, idx) => {
         const b = document.createElement('button');
         b.className = 'option-btn'; b.innerText = opt;
         b.onclick = () => {
             if (idx === q.answer) {
-                score += 10; updateUI(); feedback.innerText = "Correct! 🌴";
+                score += 10; 
+                difficultyMultiplier += 0.05;
+                updateUI(); 
+                feedback.innerText = "Correct! The wind picks up... 📈";
                 feedback.style.color = "var(--palm-green)";
                 document.getElementById('continue-btn').style.display = "block";
                 Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
-                feedback.innerText = "Not quite! Try again. ❌";
+                feedback.innerText = "Try again! ❌";
                 feedback.style.color = "var(--sunset-orange)";
             }
         };
@@ -271,7 +340,8 @@ function triggerQuestion() {
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
-    gameActive = true; lastTime = performance.now();
+    gameActive = true; 
+    lastTime = performance.now();
     requestAnimationFrame(gameLoop);
 };
 
@@ -279,33 +349,34 @@ function updateUI() {
     document.getElementById('score').innerText = score;
     document.getElementById('lives').innerText = lives;
     document.getElementById('q-remaining').innerText = availableQuestions.length;
+    document.getElementById('speed-level').innerText = Math.round(difficultyMultiplier * 100) + "%";
 }
 
-function endGame(msg) { gameActive = false; alert(msg + "\nScore: " + score); location.reload(); }
+function endGame(msg) { gameActive = false; alert(msg + "\nFinal Score: " + score); location.reload(); }
 
 document.getElementById('mute-toggle').onclick = () => {
     isMuted = !isMuted; bgMusic.muted = isMuted;
     document.getElementById('mute-toggle').innerText = isMuted ? "🌑" : "🔊";
 };
 
-function handleIn(x, y, down) {
-    mousePos.prevX = mousePos.x; mousePos.prevY = mousePos.y;
-    mousePos.x = x; mousePos.y = y; mousePos.down = down;
+// Input handling for both mouse and touch
+function updatePos(x, y, isDown) {
+    mousePos.x = x; mousePos.y = y; mousePos.down = isDown;
 }
-canvas.addEventListener('mousedown', (e) => handleIn(e.clientX, e.clientY, true));
-canvas.addEventListener('mousemove', (e) => handleIn(e.clientX, e.clientY, mousePos.down));
+window.addEventListener('mousemove', (e) => updatePos(e.clientX, e.clientY, true)); // Always "down" for visuals
+window.addEventListener('mousedown', () => mousePos.down = true);
 window.addEventListener('mouseup', () => mousePos.down = false);
-canvas.addEventListener('touchstart', (e) => handleIn(e.touches[0].clientX, e.touches[0].clientY, true), {passive:false});
-canvas.addEventListener('touchmove', (e) => { handleIn(e.touches[0].clientX, e.touches[0].clientY, true); e.preventDefault(); }, {passive:false});
+
+window.addEventListener('touchstart', (e) => {
+    updatePos(e.touches[0].clientX, e.touches[0].clientY, true);
+    e.preventDefault();
+}, {passive: false});
+window.addEventListener('touchmove', (e) => {
+    updatePos(e.touches[0].clientX, e.touches[0].clientY, true);
+    e.preventDefault();
+}, {passive: false});
 window.addEventListener('touchend', () => mousePos.down = false);
 
-function drawSlice() {
-    if (mousePos.down) {
-        ctx.beginPath(); ctx.moveTo(mousePos.prevX, mousePos.prevY);
-        ctx.lineTo(mousePos.x, mousePos.y); ctx.strokeStyle = "var(--hibiscus-pink)";
-        ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.stroke();
-    }
-}
 </script>
 </body>
 </html>
