@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Baton Essay Slice - Bombs & Blades</title>
+    <title>B1-B2 Baton Master</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -11,7 +11,7 @@
             --palm-green: #2ecc71;
             --sunset-orange: #e67e22;
             --hibiscus-pink: #ff1493;
-            --volcano-red: #c0392b;
+            --volcano-red: #ff4500;
         }
 
         body, html {
@@ -21,24 +21,32 @@
             background-color: #fdfaf0;
             font-family: 'Verdana', sans-serif;
             touch-action: none;
-            user-select: none;
+            cursor: none; /* Hides system cursor to show baton */
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw; height: 100vh;
+            background: linear-gradient(to bottom, #a1e3ff 0%, #fdfaf0 100%);
         }
 
         canvas { 
             display: block; 
-            cursor: none; 
+            position: absolute;
+            top: 0; left: 0;
             z-index: 5;
         }
 
         #ui-layer {
             position: absolute;
             top: 10px; left: 10px;
-            padding: 12px;
-            border-radius: 12px;
+            padding: 15px;
+            border-radius: 15px;
             background: rgba(255, 255, 255, 0.9);
             border: 3px solid var(--sand-yellow);
             pointer-events: none;
             z-index: 100;
+            color: var(--ocean-blue);
         }
 
         .modal {
@@ -46,92 +54,94 @@
             position: fixed;
             z-index: 300;
             left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.8);
             justify-content: center; align-items: center;
+            cursor: auto; /* Show cursor in menus */
         }
 
         .modal-content {
             background-color: #fffaf0;
-            padding: 25px;
-            border-radius: 20px;
+            padding: 30px;
+            border-radius: 25px;
             border: 6px solid var(--sand-yellow);
-            max-width: 85%;
+            max-width: 400px;
             text-align: center;
         }
 
         .option-btn {
             display: block; width: 100%;
-            padding: 14px; margin: 10px 0;
+            padding: 15px; margin: 10px 0;
             background: #fff;
             border: 2px solid var(--ocean-blue);
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
-            font-size: 1em;
+            font-size: 1.1em;
+            transition: background 0.2s;
         }
 
+        .option-btn:hover { background: #e0f4ff; }
+
         .btn-action {
-            padding: 15px 30px;
+            padding: 15px 40px;
             background: var(--sunset-orange);
             color: white;
             border-radius: 30px;
             border: none;
             font-weight: bold;
             cursor: pointer;
+            font-size: 1.2em;
+            box-shadow: 0 4px 0 #b35d10;
         }
     </style>
 </head>
 <body>
 
-<div id="ui-layer">
-    <b>B1-B2 Expert</b><br>
-    Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
-    Avoid the 🌋 Bombs!
-</div>
+<div id="game-container">
+    <div id="ui-layer">
+        <b>B1-B2 ESSAY SLICE</b><br>
+        Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
+        <small>Avoid 🌋 Bombs!</small>
+    </div>
 
-<canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas"></canvas>
 
-<div id="start-screen" class="modal" style="display: flex;">
-    <div class="modal-content">
-        <h1 style="color: var(--ocean-blue)">Baton & Bombs</h1>
-        <p><b>Swipe</b> through fruits to answer.<br><b>Avoid</b> the Volcanic Bombs 🌋 or it's Game Over!</p>
-        <button class="btn-action" onclick="startGame()">START MISSION</button>
+    <div id="start-screen" class="modal" style="display: flex;">
+        <div class="modal-content">
+            <h1 style="color: var(--ocean-blue)">Baton & Blades</h1>
+            <p>SWIPE to slice fruits and solve essay fragments.<br><br>🚨 <b>WARNING:</b> Slicing a 🌋 Bomb is an instant Game Over!</p>
+            <button class="btn-action" onclick="startGame()">START GAME</button>
+        </div>
+    </div>
+
+    <div id="question-modal" class="modal">
+        <div class="modal-content">
+            <h2 id="feedback-title" style="color: var(--palm-green)">Knowledge Check</h2>
+            <p id="question-text" style="font-weight: bold; font-size: 1.1em;"></p>
+            <div id="options-container"></div>
+            <div id="answer-feedback" style="margin: 10px; font-weight: bold;"></div>
+            <button id="continue-btn" class="btn-action" style="display:none;">CONTINUE</button>
+        </div>
     </div>
 </div>
-
-<div id="question-modal" class="modal">
-    <div class="modal-content">
-        <h2 style="color: var(--palm-green)">Structure Check</h2>
-        <p id="question-text" style="font-weight: bold;"></p>
-        <div id="options-container"></div>
-        <div id="answer-feedback" style="font-weight: bold; margin: 10px; min-height: 20px;"></div>
-        <button id="continue-btn" class="btn-action" style="display:none;">CONTINUE</button>
-    </div>
-</div>
-
-<audio id="bg-music" loop>
-    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" type="audio/mpeg">
-</audio>
 
 <script>
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const bgMusic = document.getElementById('bg-music');
 
 let gameActive = false;
 let score = 0;
 let lives = 3;
 let difficulty = 1.0;
-let objects = [];
+let items = [];
 let trail = [];
 let lastTime = 0;
-let availableQuestions = [];
 
 const questions = [
-    { q: "Which transition shows a 'Cause and Effect'?", options: ["For example", "Because of this", "On the other hand", "Firstly"], answer: 1 },
-    { q: "A 'Topic Sentence' is used to:", options: ["End the essay", "Introduce the paragraph's main idea", "Check spelling", "List references"], answer: 1 },
-    { q: "Which word adds information?", options: ["Alternatively", "Additionally", "Instead", "Unless"], answer: 1 },
-    { q: "The 'Thesis Statement' belongs in the:", options: ["Conclusion", "Body Paragraph", "Introduction", "Page Header"], answer: 2 },
-    { q: "Formal writing should avoid:", options: ["Facts", "Contractions (e.g., don't)", "Transitions", "Third person"], answer: 1 }
+    { q: "Which word signals a 'Contrast'?", options: ["Furthermore", "However", "Consequently", "Similarly"], answer: 1 },
+    { q: "What belongs in an Introduction?", options: ["Full Data", "Thesis Statement", "Bibliography", "New Arguments"], answer: 1 },
+    { q: "To add information, use:", options: ["Conversely", "In addition", "Therefore", "Despite"], answer: 1 },
+    { q: "A 'Topic Sentence' summarizes a:", options: ["Whole Book", "Single Paragraph", "Bibliography", "Conclusion"], answer: 1 },
+    { q: "Formal essays should avoid:", options: ["Statistics", "Slang/Contractions", "Academic Verbs", "Quotes"], answer: 1 }
 ];
 
 function resize() {
@@ -141,15 +151,18 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-class GameObject {
+class GameItem {
     constructor(isBomb) {
-        this.radius = 45;
-        this.x = Math.random() * (canvas.width - 100) + 50;
-        this.y = canvas.height + 50;
+        this.radius = 40;
         this.isBomb = isBomb;
-        this.gravity = 600 * difficulty;
+        this.x = Math.random() * (canvas.width - 80) + 40;
+        this.y = canvas.height + 50;
+        
+        const baseGravity = 700;
+        this.gravity = baseGravity * difficulty;
         this.vy = -Math.sqrt(2 * (canvas.height * 0.8) * this.gravity);
-        this.vx = (Math.random() - 0.5) * 200;
+        this.vx = (Math.random() - 0.5) * 250;
+        
         this.label = isBomb ? '🌋' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
     }
 
@@ -160,31 +173,68 @@ class GameObject {
     }
 
     draw() {
+        ctx.save();
         ctx.font = "60px Arial";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
+        // Shadow for depth
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "rgba(0,0,0,0.2)";
         ctx.fillText(this.label, this.x, this.y);
+        ctx.restore();
     }
 }
 
-function checkCollision(obj) {
+function checkSlice(item) {
     if (trail.length < 2) return false;
-    
-    // Check line segment intersection with circle
-    const p1 = trail[trail.length - 2];
-    const p2 = trail[trail.length - 1];
-    
-    // Calculate distance between points to ensure it's a swipe, not a tap
-    const swipeDist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-    if (swipeDist < 5) return false; // Too slow/short to be a slice
 
-    const dx = p2.x - p1.x;
-    const dy = p2.y - p1.y;
-    const t = ((obj.x - p1.x) * dx + (obj.y - p1.y) * dy) / (dx * dx + dy * dy);
-    const closestX = p1.x + Math.max(0, Math.min(1, t)) * dx;
-    const closestY = p1.y + Math.max(0, Math.min(1, t)) * dy;
-    
-    return Math.hypot(obj.x - closestX, obj.y - closestY) < obj.radius;
+    for (let i = 0; i < trail.length - 1; i++) {
+        const p1 = trail[i];
+        const p2 = trail[i+1];
+
+        // Line-Circle Intersection math
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const t = ((item.x - p1.x) * dx + (item.y - p1.y) * dy) / (dx * dx + dy * dy);
+        const closestX = p1.x + Math.max(0, Math.min(1, t)) * dx;
+        const closestY = p1.y + Math.max(0, Math.min(1, t)) * dy;
+
+        const distance = Math.hypot(item.x - closestX, item.y - closestY);
+        if (distance < item.radius) return true;
+    }
+    return false;
+}
+
+function drawBaton() {
+    if (trail.length < 2) return;
+
+    ctx.save();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    // Draw the "Blade"
+    for (let i = 1; i < trail.length; i++) {
+        const p1 = trail[i-1];
+        const p2 = trail[i];
+        const progress = i / trail.length;
+        
+        ctx.beginPath();
+        ctx.lineWidth = progress * 15; // Tapers toward the tail
+        ctx.strokeStyle = `rgba(255, 20, 147, ${progress})`; // Hibiscus Pink
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "rgba(255, 20, 147, 0.8)";
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+    }
+
+    // White core tip
+    const tip = trail[trail.length - 1];
+    ctx.beginPath();
+    ctx.arc(tip.x, tip.y, 6, 0, Math.PI * 2);
+    ctx.fillStyle = "white";
+    ctx.fill();
+    ctx.restore();
 }
 
 function gameLoop(timestamp) {
@@ -196,66 +246,47 @@ function gameLoop(timestamp) {
 
     if (gameActive) {
         if (Math.random() < 0.02) {
-            const isBomb = Math.random() < 0.15; // 15% chance for a bomb
-            objects.push(new GameObject(isBomb));
+            const isBomb = Math.random() < 0.15; // 15% bomb chance
+            items.push(new GameItem(isBomb));
         }
 
-        for (let i = objects.length - 1; i >= 0; i--) {
-            let obj = objects[i];
-            obj.update(dt);
-            obj.draw();
+        for (let i = items.length - 1; i >= 0; i--) {
+            let item = items[i];
+            item.update(dt);
+            item.draw();
 
-            if (checkCollision(obj)) {
-                if (obj.isBomb) {
-                    endGame("BOOM! You sliced a Volcanic Bomb!");
+            if (checkSlice(item)) {
+                if (item.isBomb) {
+                    endGame("🌋 BOOM! You sliced a volcanic bomb!");
                     return;
                 } else {
-                    objects.splice(i, 1);
+                    items.splice(i, 1);
                     gameActive = false;
                     triggerQuestion();
                 }
             }
 
-            if (obj.y > canvas.height + 100) {
-                if (!obj.isBomb) lives--;
-                objects.splice(i, 1);
+            if (item.y > canvas.height + 100) {
+                if (!item.isBomb) lives--;
+                items.splice(i, 1);
                 updateUI();
-                if (lives <= 0) endGame("Out of lives! The library is lost.");
+                if (lives <= 0) endGame("Out of lives! The tropical storm won.");
             }
         }
     }
 
     drawBaton();
     
-    // Trail decay
+    // Trail handling: remove oldest point every frame to keep it snappy
     if (trail.length > 0) trail.shift();
 
     requestAnimationFrame(gameLoop);
-}
-
-function drawBaton() {
-    if (trail.length < 2) return;
-    
-    ctx.beginPath();
-    for (let i = 0; i < trail.length - 1; i++) {
-        const p1 = trail[i];
-        const p2 = trail[i+1];
-        const pct = i / trail.length;
-        
-        ctx.lineWidth = pct * 18;
-        ctx.strokeStyle = `rgba(255, 20, 147, ${pct})`;
-        ctx.lineCap = "round";
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        ctx.stroke();
-    }
 }
 
 function triggerQuestion() {
     const modal = document.getElementById('question-modal');
     const container = document.getElementById('options-container');
     const feedback = document.getElementById('answer-feedback');
-    
     const q = questions[Math.floor(Math.random() * questions.length)];
 
     document.getElementById('question-text').innerText = q.q;
@@ -272,11 +303,11 @@ function triggerQuestion() {
                 score += 10;
                 difficulty += 0.05;
                 updateUI();
-                feedback.innerText = "Correct! Progressing... 🌴";
+                feedback.innerText = "EXCELLENT! +10 Points";
                 feedback.style.color = "var(--palm-green)";
-                document.getElementById('continue-btn').style.display = "block";
+                document.getElementById('continue-btn').style.display = "inline-block";
             } else {
-                feedback.innerText = "Incorrect! ❌";
+                feedback.innerText = "INCORRECT! Try again.";
                 feedback.style.color = "var(--volcano-red)";
             }
         };
@@ -287,14 +318,12 @@ function triggerQuestion() {
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
-    trail = []; // Clear trail so we don't instant-slice the next fruit
+    trail = []; // Reset baton
     gameActive = true;
 };
 
 function startGame() {
-    bgMusic.play();
-    score = 0; lives = 3; difficulty = 1.0;
-    objects = [];
+    score = 0; lives = 3; difficulty = 1.0; items = []; trail = [];
     document.getElementById('start-screen').style.display = 'none';
     gameActive = true;
     updateUI();
@@ -311,18 +340,25 @@ function endGame(msg) {
     location.reload();
 }
 
-function handleMove(e) {
+// Global Input Mapping
+function handleInput(e) {
     const x = e.clientX || (e.touches && e.touches[0].clientX);
     const y = e.clientY || (e.touches && e.touches[0].clientY);
-    if (x && y) {
+    
+    if (x !== undefined && y !== undefined) {
         trail.push({ x, y });
+        // Keep trail length sufficient for slashing at high speed
         if (trail.length > 15) trail.shift();
     }
 }
 
-window.addEventListener('mousemove', handleMove);
-window.addEventListener('touchmove', (e) => { handleMove(e); e.preventDefault(); }, { passive: false });
+window.addEventListener('mousemove', handleInput);
+window.addEventListener('touchmove', (e) => {
+    handleInput(e);
+    e.preventDefault();
+}, { passive: false });
 
+// Kick off the loop
 requestAnimationFrame(gameLoop);
 </script>
 </body>
