@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - High Speed Edition</title>
+    <title>Tropical Essay Slice Pro</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -20,7 +20,7 @@
             width: 100%; height: 100%;
             overflow: hidden;
             background-color: var(--bg-light);
-            font-family: 'Verdana', sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: var(--text-dark);
             overscroll-behavior: none;
             touch-action: none;
@@ -32,69 +32,101 @@
             background: linear-gradient(to bottom, #87CEEB 0%, #fdfaf0 100%);
         }
 
-        canvas { display: block; }
+        canvas { display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.1)); }
 
         #ui-layer {
             position: absolute;
-            top: 10px; left: 10px;
-            padding: 12px;
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.9);
+            top: 15px; left: 15px;
+            padding: 15px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(5px);
             border: 3px solid var(--sand-yellow);
             pointer-events: none;
             z-index: 10;
+            min-width: 180px;
         }
 
         #audio-controls {
             position: absolute;
-            top: 10px; right: 10px;
+            top: 15px; right: 15px;
             z-index: 20;
         }
 
         .audio-btn {
             background: var(--palm-green);
             border: none; border-radius: 50%;
-            width: 44px; height: 44px;
-            cursor: pointer; font-size: 20px;
+            width: 50px; height: 50px;
+            cursor: pointer; font-size: 24px;
             box-shadow: 0 4px 0 #27ae60;
+            transition: transform 0.1s;
         }
+
+        .audio-btn:active { transform: translateY(4px); box-shadow: none; }
 
         .modal {
             display: none;
             position: fixed;
             z-index: 300;
             left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
+            background-color: rgba(0, 0, 0, 0.7);
             justify-content: center; align-items: center;
+            backdrop-filter: blur(3px);
         }
 
         .modal-content {
-            background-color: #fffaf0;
-            padding: 25px;
-            border-radius: 20px;
-            border: 6px solid var(--sand-yellow);
-            max-width: 85%;
+            background: white;
+            padding: 30px;
+            border-radius: 25px;
+            border: 8px solid var(--sand-yellow);
+            max-width: 400px;
+            width: 85%;
             text-align: center;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
 
         .option-btn {
             display: block; width: 100%;
             padding: 14px; margin: 10px 0;
-            background: #fff;
-            border: 2px solid var(--ocean-blue);
-            border-radius: 10px;
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 1em;
+            transition: all 0.2s;
         }
 
+        .option-btn:hover { background: var(--ocean-blue); color: white; border-color: var(--ocean-blue); }
+
         .btn-action {
-            padding: 15px 30px;
+            padding: 15px 40px;
             background: var(--sunset-orange);
             color: white;
-            border-radius: 30px;
+            border-radius: 50px;
             border: none;
             font-weight: bold;
+            font-size: 1.1em;
             cursor: pointer;
+            box-shadow: 0 4px 0 #d35400;
+        }
+
+        .btn-action:active { transform: translateY(2px); box-shadow: 0 2px 0 #d35400; }
+
+        #countdown {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 120px;
+            color: white;
+            text-shadow: 0 0 20px rgba(0,0,0,0.5);
+            display: none;
+            z-index: 500;
+            font-weight: 900;
         }
     </style>
 </head>
@@ -102,32 +134,44 @@
 
 <div id="game-container">
     <div id="ui-layer">
-        <b>B1-B2 Fast Mode</b><br>
-        Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
-        Remaining: <span id="q-remaining">25</span>
+        <strong style="color: var(--ocean-blue)">B1-B2 CHALLENGE</strong><br>
+        Score: <span id="score">0</span><br>
+        Lives: <span id="lives">❤️❤️❤️</span><br>
+        Progress: <span id="q-remaining">25</span>
     </div>
 
     <div id="audio-controls">
         <button class="audio-btn" id="mute-toggle">🔊</button>
     </div>
 
+    <div id="countdown">3</div>
+
     <canvas id="gameCanvas"></canvas>
 
     <div id="start-screen" class="modal" style="display: flex;">
         <div class="modal-content">
-            <h1 style="color: var(--ocean-blue)">Fast Tropical Slice</h1>
-            <p>The fruits are moving faster now! <br>Master your essay structure to win.</p>
-            <button class="btn-action" onclick="startGame()">START SESSION</button>
+            <h1 style="color: var(--ocean-blue); margin-top:0;">🌴 Tropical Slice</h1>
+            <p>Slice fruits to reveal essay fragments. <br>Get the logic right to keep your score!</p>
+            <button class="btn-action" onclick="initGame()">PLAY NOW</button>
         </div>
     </div>
 
     <div id="question-modal" class="modal">
         <div class="modal-content">
-            <h2 style="color: var(--palm-green)">Structure Fragment</h2>
-            <p id="question-text" style="font-weight: bold;"></p>
+            <h2 id="q-header" style="color: var(--palm-green); margin-top:0;">Grammar Slice!</h2>
+            <p id="question-text" style="font-weight: bold; font-size: 1.1em;"></p>
             <div id="options-container"></div>
-            <div id="answer-feedback" style="font-weight: bold; margin: 10px; min-height: 20px;"></div>
-            <button id="continue-btn" class="btn-action" style="display:none;">CONTINUE</button>
+            <div id="answer-feedback" style="font-weight: bold; margin: 15px; min-height: 24px;"></div>
+            <button id="continue-btn" class="btn-action" style="display:none; width:100%">CONTINUE</button>
+        </div>
+    </div>
+
+    <div id="game-over-modal" class="modal">
+        <div class="modal-content">
+            <h1 id="over-title">Game Over!</h1>
+            <p id="over-msg"></p>
+            <h2 id="final-score-display"></h2>
+            <button class="btn-action" onclick="location.reload()">REPLAY</button>
         </div>
     </div>
 </div>
@@ -137,24 +181,7 @@
 </audio>
 
 <script>
-// --- AUDIO ---
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-const bgMusic = document.getElementById('bg-music');
-let isMuted = false;
-
-function playSwoosh() {
-    if (isMuted) return;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.1);
-}
-
-// --- B1-B2 LEVEL QUESTIONS ---
+// --- CORE DATA ---
 const masterQuestions = [
     { q: "Which word is best to start a paragraph with a NEW idea?", options: ["Furthermore", "However", "In addition", "Overall"], answer: 2 },
     { q: "What is the main goal of the 'Introduction'?", options: ["To give every detail", "To state the thesis and background", "To list the bibliography", "To say goodbye"], answer: 1 },
@@ -163,109 +190,170 @@ const masterQuestions = [
     { q: "Which phrase is more formal than 'I think'?", options: ["It is often argued that", "In my brain", "I believe", "I'm saying"], answer: 0 },
     { q: "What is a 'Topic Sentence'?", options: ["The last sentence", "The sentence that gives the main idea of a paragraph", "A sentence about the weather", "The title of the book"], answer: 1 },
     { q: "Which word shows a 'Contrast'?", options: ["Moreover", "Similarly", "However", "Consequently"], answer: 2 },
-    { q: "A good essay should be divided into:", options: ["One long text", "Paragraphs", "Short bullet points", "Numbered lists only"], answer: 1 },
     { q: "Which word adds information?", options: ["Alternatively", "Additionally", "Instead", "Unless"], answer: 1 },
     { q: "The 'Thesis Statement' is usually found in the:", options: ["Conclusion", "Body Paragraph", "Introduction", "Reference List"], answer: 2 },
-    { q: "What should you do after giving a quote?", options: ["Nothing", "Explain how it supports your point", "Give another quote immediately", "Change the topic"], answer: 1 },
-    { q: "Which transition is used for 'Examples'?", options: ["In contrast", "For instance", "Therefore", "Lastly"], answer: 1 },
-    { q: "What is the purpose of 'Supporting Sentences'?", options: ["To repeat the title", "To give evidence and details", "To end the essay", "To check spelling"], answer: 1 },
-    { q: "Which is a formal way to say 'But'?", options: ["And", "So", "Nevertheless", "Like"], answer: 2 },
-    { q: "A 'Balanced Argument' essay includes:", options: ["Only your opinion", "Both sides of an issue", "Only facts about history", "A list of definitions"], answer: 1 },
-    { q: "Which word signals the end of a sequence?", options: ["Firstly", "Secondly", "Finally", "Next"], answer: 2 },
-    { q: "What does 'Relevant' mean in essay writing?", options: ["Interesting but off-topic", "Directly connected to the question", "Very long", "Difficult to read"], answer: 1 },
-    { q: "Which phrase introduces a result?", options: ["As a result", "In contrast", "Similarly", "In my view"], answer: 0 },
-    { q: "Formal writing should avoid using:", options: ["Long words", "Contractions (like 'don't')", "Facts", "Transitions"], answer: 1 },
-    { q: "A 'Link Sentence' is used to:", options: ["Start the essay", "Connect two paragraphs", "Give a definition", "Close the browser"], answer: 1 },
-    { q: "What should you avoid in a Conclusion?", options: ["Summarizing", "Adding new information", "Restating the thesis", "A final thought"], answer: 1 },
-    { q: "Which word is a synonym for 'Therefore'?", options: ["Consequently", "But", "Also", "Although"], answer: 0 },
-    { q: "Academic writing usually uses the:", options: ["First person (I/me)", "Third person (It/They)", "Second person (You)", "Slang person"], answer: 1 },
-    { q: "To 'Paraphrase' means to:", options: ["Copy exactly", "Write in your own words", "Delete a sentence", "Highlight a word"], answer: 1 },
-    { q: "Which is a 'Hook'?", options: ["The final sentence", "A way to grab the reader's attention", "A list of sources", "The page number"], answer: 1 }
+    { q: "What should you do after giving a quote?", options: ["Nothing", "Explain how it supports your point", "Give another quote immediately", "Change the topic"], answer: 1 }
 ];
 
+// --- GAME STATE ---
 let availableQuestions = [];
 let score = 0, lives = 3, gameActive = false;
 let fruits = [];
+let trail = [];
 let lastTime = 0;
 let mousePos = { x: 0, y: 0, prevX: 0, prevY: 0, down: false };
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-window.addEventListener('resize', resize); resize();
+const bgMusic = document.getElementById('bg-music');
+let isMuted = false;
 
-class Fruit {
-    constructor() {
-        this.radius = Math.min(canvas.width * 0.08, 55);
-        this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
-        this.y = canvas.height + this.radius;
-        
-        // --- FAST SPEED PHYSICS ---
-        // Increased gravity and launch velocity
-        this.gravity = canvas.height * 0.85; 
-        let verticalForce = Math.sqrt(2 * (canvas.height * 0.9) * this.gravity); 
-        this.vy = -verticalForce; 
-        this.vx = (Math.random() - 0.5) * (canvas.width * 0.4);
-        
-        this.label = ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
-        this.sliced = false;
-    }
-    update(dt) {
-        this.x += this.vx * dt; this.y += this.vy * dt; this.vy += this.gravity * dt;
-        if(this.x < this.radius || this.x > canvas.width - this.radius) this.vx *= -1;
-    }
-    draw() {
-        ctx.font = `${this.radius * 1.5}px Arial`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText(this.label, this.x, this.y);
-    }
+// --- INITIALIZATION ---
+function resize() { 
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight; 
+}
+window.addEventListener('resize', resize); 
+resize();
+
+function initGame() {
+    document.getElementById('start-screen').style.display = 'none';
+    const cd = document.getElementById('countdown');
+    cd.style.display = 'block';
+    let count = 3;
+    
+    let timer = setInterval(() => {
+        count--;
+        cd.innerText = count;
+        if(count <= 0) {
+            clearInterval(timer);
+            cd.style.display = 'none';
+            startGame();
+        }
+    }, 800);
 }
 
 function startGame() {
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
     bgMusic.play();
+    
     score = 0; lives = 3;
-    availableQuestions = JSON.parse(JSON.stringify(masterQuestions));
-    document.getElementById('start-screen').style.display = 'none';
+    availableQuestions = [...masterQuestions];
     gameActive = true;
     lastTime = performance.now();
     updateUI();
     requestAnimationFrame(gameLoop);
 }
 
+// --- CLASSES ---
+class Fruit {
+    constructor() {
+        this.radius = 40 + Math.random() * 20;
+        this.x = Math.random() * (canvas.width - 100) + 50;
+        this.y = canvas.height + 50;
+        this.vx = (Math.random() - 0.5) * (canvas.width * 0.35);
+        this.vy = -(Math.sqrt(2 * canvas.height * (canvas.height * 0.8)));
+        this.gravity = canvas.height * 0.8;
+        this.rotation = 0;
+        this.rotationSpeed = (Math.random() - 0.5) * 5;
+        this.emoji = ['🍍', '🥭', '🥥', '🍌', '🍉', '🥝'][Math.floor(Math.random()*6)];
+        this.sliced = false;
+    }
+    update(dt) {
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        this.vy += this.gravity * dt;
+        this.rotation += this.rotationSpeed * dt;
+    }
+    draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        ctx.font = `${this.radius * 1.5}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(this.emoji, 0, 0);
+        ctx.restore();
+    }
+}
+
+// --- ENGINE ---
 function gameLoop(timestamp) {
     if (!gameActive) return;
     let dt = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
     if (dt > 0.1) dt = 0.1;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Increased spawn rate for fast mode
-    if (Math.random() < 0.025) fruits.push(new Fruit());
+    // Trail logic
+    if (mousePos.down) {
+        trail.push({x: mousePos.x, y: mousePos.y, life: 1.0});
+    }
+    updateTrail(dt);
+
+    // Spawn
+    if (Math.random() < 0.03) fruits.push(new Fruit());
 
     for (let i = fruits.length - 1; i >= 0; i--) {
-        let f = fruits[i]; f.update(dt); f.draw();
+        let f = fruits[i];
+        f.update(dt);
+        f.draw();
+
+        // Hit Detection
         if (mousePos.down && !f.sliced) {
-            if (Math.hypot(f.x - mousePos.x, f.y - mousePos.y) < f.radius * 1.6) {
-                f.sliced = true; 
-                playSwoosh();
-                fruits.splice(i, 1); gameActive = false; triggerQuestion();
+            let dist = Math.hypot(f.x - mousePos.x, f.y - mousePos.y);
+            if (dist < f.radius * 1.5) {
+                f.sliced = true;
+                fruits.splice(i, 1);
+                gameActive = false;
+                triggerQuestion();
             }
         }
+
+        // Out of bounds
         if (f.y > canvas.height + 100) {
-            fruits.splice(i, 1); lives--; updateUI();
-            if (lives <= 0) endGame("Island Storm! Try again to master the structure.");
+            fruits.splice(i, 1);
+            lives--;
+            updateUI();
+            if (lives <= 0) endGame("The storm caught up to the island!");
         }
     }
-    drawSlice(); requestAnimationFrame(gameLoop);
+
+    requestAnimationFrame(gameLoop);
+}
+
+function updateTrail(dt) {
+    ctx.beginPath();
+    ctx.lineWidth = 8;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(255, 105, 180, 0.6)";
+
+    for (let i = 0; i < trail.length; i++) {
+        let p = trail[i];
+        p.life -= dt * 3;
+        if (p.life <= 0) {
+            trail.splice(i, 1);
+            i--;
+            continue;
+        }
+        if (i === 0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+    }
+    ctx.stroke();
 }
 
 function triggerQuestion() {
-    if (availableQuestions.length === 0) { endGame("Legendary Scholar! You finished the B1-B2 course!"); return; }
+    if (availableQuestions.length === 0) {
+        endGame("You are a Tropical Scholar!");
+        return;
+    }
+
     const modal = document.getElementById('question-modal');
     const container = document.getElementById('options-container');
     const feedback = document.getElementById('answer-feedback');
     
-    // --- NO REPEAT LOGIC ---
     const qIndex = Math.floor(Math.random() * availableQuestions.length);
     const q = availableQuestions.splice(qIndex, 1)[0]; 
 
@@ -275,16 +363,21 @@ function triggerQuestion() {
     
     q.options.forEach((opt, idx) => {
         const b = document.createElement('button');
-        b.className = 'option-btn'; b.innerText = opt;
+        b.className = 'option-btn';
+        b.innerText = opt;
         b.onclick = () => {
             if (idx === q.answer) {
-                score += 10; updateUI(); feedback.innerText = "Correct! 🌴";
+                score += 10;
+                updateUI();
+                feedback.innerText = "EXCELLENT! 🥥";
                 feedback.style.color = "var(--palm-green)";
                 document.getElementById('continue-btn').style.display = "block";
                 Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
-                feedback.innerText = "Not quite! ❌";
+                feedback.innerText = "Try another choice...";
                 feedback.style.color = "var(--sunset-orange)";
+                b.style.opacity = "0.5";
+                b.disabled = true;
             }
         };
         container.appendChild(b);
@@ -294,41 +387,54 @@ function triggerQuestion() {
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
-    gameActive = true; lastTime = performance.now();
+    gameActive = true;
+    lastTime = performance.now();
     requestAnimationFrame(gameLoop);
 };
 
 function updateUI() {
     document.getElementById('score').innerText = score;
-    document.getElementById('lives').innerText = lives;
     document.getElementById('q-remaining').innerText = availableQuestions.length;
+    let heartStr = "";
+    for(let i=0; i<lives; i++) heartStr += "❤️";
+    document.getElementById('lives').innerText = heartStr || "NONE";
 }
 
-function endGame(msg) { gameActive = false; alert(msg + "\nFinal Score: " + score); location.reload(); }
+function endGame(msg) {
+    gameActive = false;
+    document.getElementById('game-over-modal').style.display = "flex";
+    document.getElementById('over-msg').innerText = msg;
+    document.getElementById('final-score-display').innerText = "Final Score: " + score;
+}
 
-document.getElementById('mute-toggle').onclick = () => {
-    isMuted = !isMuted; bgMusic.muted = isMuted;
-    document.getElementById('mute-toggle').innerText = isMuted ? "🌑" : "🔊";
-};
-
+// --- INPUTS ---
 function handleIn(x, y, down) {
     mousePos.prevX = mousePos.x; mousePos.prevY = mousePos.y;
     mousePos.x = x; mousePos.y = y; mousePos.down = down;
 }
+
 canvas.addEventListener('mousedown', (e) => handleIn(e.clientX, e.clientY, true));
 canvas.addEventListener('mousemove', (e) => handleIn(e.clientX, e.clientY, mousePos.down));
-window.addEventListener('mouseup', () => mousePos.down = false);
-canvas.addEventListener('touchstart', (e) => handleIn(e.touches[0].clientX, e.touches[0].clientY, true), {passive:false});
-canvas.addEventListener('touchmove', (e) => { handleIn(e.touches[0].clientX, e.touches[0].clientY, true); e.preventDefault(); }, {passive:false});
-window.addEventListener('touchend', () => mousePos.down = false);
+window.addEventListener('mouseup', () => { mousePos.down = false; trail = []; });
 
-function drawSlice() {
-    if (mousePos.down) {
-        ctx.beginPath(); ctx.moveTo(mousePos.prevX, mousePos.prevY);
-        ctx.lineTo(mousePos.x, mousePos.y); ctx.strokeStyle = "var(--hibiscus-pink)";
-        ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.stroke();
-    }
-}
+canvas.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    handleIn(t.clientX, t.clientY, true);
+}, {passive:false});
+
+canvas.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    handleIn(t.clientX, t.clientY, true);
+    e.preventDefault();
+}, {passive:false});
+
+window.addEventListener('touchend', () => { mousePos.down = false; trail = []; });
+
+document.getElementById('mute-toggle').onclick = () => {
+    isMuted = !isMuted; 
+    bgMusic.muted = isMuted;
+    document.getElementById('mute-toggle').innerText = isMuted ? "🌑" : "🔊";
+};
 </script>
 </body>
 </html>
