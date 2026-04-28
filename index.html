@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Chill Edition</title>
+    <title>Tropical Essay Slice - No Repeats</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -31,7 +31,7 @@
             position: relative;
             width: 100vw; height: 100vh;
             background: linear-gradient(to bottom, #87CEEB 0%, #fdfaf0 100%);
-            transition: background 0.2s;
+            transition: background 0.1s;
         }
 
         canvas { display: block; }
@@ -72,6 +72,7 @@
             border: 2px solid var(--ocean-blue);
             border-radius: 10px;
             cursor: pointer;
+            font-weight: bold;
         }
 
         .btn-action {
@@ -84,7 +85,6 @@
             cursor: pointer;
         }
 
-        /* Explosion Flash Effect */
         .flash-red { background: var(--danger-red) !important; }
     </style>
 </head>
@@ -92,9 +92,9 @@
 
 <div id="game-container">
     <div id="ui-layer">
-        <b>Relaxed Mode</b><br>
+        <b>B1-B2 Mastery</b><br>
         Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
-        <small style="color: var(--danger-red)">⚠️ Avoid the Bombs!</small>
+        New Questions Left: <span id="q-left">0</span>
     </div>
 
     <canvas id="gameCanvas"></canvas>
@@ -102,8 +102,8 @@
     <div id="start-screen" class="modal" style="display: flex;">
         <div class="modal-content">
             <h1 style="color: var(--ocean-blue)">Tropical Slice</h1>
-            <p>Slice fruits for questions. <br><b>DO NOT</b> slice the bombs!</p>
-            <button class="btn-action" onclick="startGame()">START GAME</button>
+            <p>Master the essay structure!<br>Slice fruit for questions. Avoid bombs.</p>
+            <button class="btn-action" onclick="startGame()">START SESSION</button>
         </div>
     </div>
 
@@ -119,15 +119,27 @@
 </div>
 
 <script>
+// --- FULL QUESTION DATABASE ---
 const masterQuestions = [
     { q: "Which word is best to start a paragraph with a NEW idea?", options: ["Furthermore", "However", "In addition", "Overall"], answer: 2 },
     { q: "What is the main goal of the 'Introduction'?", options: ["To give every detail", "To state the thesis and background", "To list the bibliography", "To say goodbye"], answer: 1 },
     { q: "Which transition shows a 'Cause and Effect'?", options: ["For example", "Because of this", "On the other hand", "Firstly"], answer: 1 },
     { q: "In an essay, what does 'To conclude' mean?", options: ["To start the essay", "To give more evidence", "To summarize the main points", "To ask a new question"], answer: 2 },
-    { q: "Which phrase is more formal than 'I think'?", options: ["It is often argued that", "In my brain", "I believe", "I'm saying"], answer: 0 }
+    { q: "Which phrase is more formal than 'I think'?", options: ["It is often argued that", "In my brain", "I believe", "I'm saying"], answer: 0 },
+    { q: "What is a 'Topic Sentence'?", options: ["The last sentence", "Sentence giving the main idea of a paragraph", "A sentence about the weather", "The title of the book"], answer: 1 },
+    { q: "Which word shows a 'Contrast'?", options: ["Moreover", "Similarly", "However", "Consequently"], answer: 2 },
+    { q: "Which word adds information?", options: ["Alternatively", "Additionally", "Instead", "Unless"], answer: 1 },
+    { q: "The 'Thesis Statement' is usually found in the:", options: ["Conclusion", "Body Paragraph", "Introduction", "Reference List"], answer: 2 },
+    { q: "What should you do after giving a quote?", options: ["Nothing", "Explain how it supports your point", "Give another quote immediately", "Change the topic"], answer: 1 },
+    { q: "Which transition is used for 'Examples'?", options: ["In contrast", "For instance", "Therefore", "Lastly"], answer: 1 },
+    { q: "Which is a formal way to say 'But'?", options: ["And", "So", "Nevertheless", "Like"], answer: 2 },
+    { q: "A 'Balanced Argument' essay includes:", options: ["Only your opinion", "Both sides of an issue", "Only facts about history", "A list of definitions"], answer: 1 },
+    { q: "Which word signals the end of a sequence?", options: ["Firstly", "Secondly", "Finally", "Next"], answer: 2 },
+    { q: "Academic writing usually uses the:", options: ["First person (I/me)", "Third person (It/They)", "Second person (You)", "Slang"], answer: 1 }
 ];
 
-let availableQuestions = [];
+// --- GAME STATE ---
+let questionPool = []; // This will shrink as questions are used
 let score = 0, lives = 3, gameActive = false;
 let objects = [];
 let lastTime = 0;
@@ -144,8 +156,8 @@ class GameObject {
         this.x = Math.random() * (canvas.width - 100) + 50;
         this.y = canvas.height + this.radius;
         
-        // --- LOWER SPEED PHYSICS ---
-        this.gravity = canvas.height * 0.45; // Reduced from 0.85
+        // Physics (Chill Speed)
+        this.gravity = canvas.height * 0.45; 
         let verticalForce = Math.sqrt(2 * (canvas.height * 0.8) * this.gravity); 
         this.vy = -verticalForce; 
         this.vx = (Math.random() - 0.5) * (canvas.width * 0.2);
@@ -159,15 +171,15 @@ class GameObject {
         if(this.x < this.radius || this.x > canvas.width - this.radius) this.vx *= -1;
     }
     draw() {
-        ctx.font = `${this.radius * 1.5}px Arial`; 
-        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = `${this.radius * 1.5}px Arial`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillText(this.label, this.x, this.y);
     }
 }
 
 function startGame() {
     score = 0; lives = 3;
-    availableQuestions = [...masterQuestions];
+    // Reset the pool only when starting a fresh session
+    questionPool = [...masterQuestions]; 
     document.getElementById('start-screen').style.display = 'none';
     gameActive = true;
     lastTime = performance.now();
@@ -182,10 +194,9 @@ function gameLoop(timestamp) {
     if (dt > 0.1) dt = 0.1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Spawn Logic: 2.5% chance to spawn; 20% of spawns are bombs
-    if (Math.random() < 0.025) {
-        let isBomb = Math.random() < 0.2;
-        objects.push(new GameObject(isBomb));
+    // Spawn Logic
+    if (Math.random() < 0.02) {
+        objects.push(new GameObject(Math.random() < 0.25));
     }
 
     for (let i = objects.length - 1; i >= 0; i--) {
@@ -206,9 +217,9 @@ function gameLoop(timestamp) {
         }
 
         if (obj.y > canvas.height + 100) {
-            if (!obj.isBomb) { lives--; updateUI(); } // Missing a fruit costs a life, missing a bomb is fine
+            if (!obj.isBomb) { lives--; updateUI(); }
             objects.splice(i, 1);
-            if (lives <= 0) endGame("Game Over! Watch out for those bombs.");
+            if (lives <= 0) endGame("Island Storm! You ran out of lives.");
         }
     }
     drawSlice(); requestAnimationFrame(gameLoop);
@@ -217,21 +228,24 @@ function gameLoop(timestamp) {
 function triggerBomb() {
     lives--;
     updateUI();
-    // Visual feedback for explosion
-    const container = document.getElementById('game-container');
-    container.classList.add('flash-red');
-    setTimeout(() => container.classList.remove('flash-red'), 150);
-    
-    if (lives <= 0) endGame("BOOM! The bomb ended your journey.");
+    document.getElementById('game-container').classList.add('flash-red');
+    setTimeout(() => document.getElementById('game-container').classList.remove('flash-red'), 150);
+    if (lives <= 0) endGame("BOOM! Watch those bombs next time.");
 }
 
 function triggerQuestion() {
+    // If we run out of questions, refill the pool
+    if (questionPool.length === 0) {
+        questionPool = [...masterQuestions];
+    }
+
     const modal = document.getElementById('question-modal');
     const container = document.getElementById('options-container');
     const feedback = document.getElementById('answer-feedback');
     
-    const qIndex = Math.floor(Math.random() * availableQuestions.length);
-    const q = availableQuestions[qIndex];
+    // Pick a random question and REMOVE it from the pool (splice)
+    const qIndex = Math.floor(Math.random() * questionPool.length);
+    const q = questionPool.splice(qIndex, 1)[0]; 
 
     document.getElementById('question-text').innerText = q.q;
     container.innerHTML = ""; feedback.innerText = "";
@@ -242,12 +256,13 @@ function triggerQuestion() {
         b.className = 'option-btn'; b.innerText = opt;
         b.onclick = () => {
             if (idx === q.answer) {
-                score += 10; updateUI(); feedback.innerText = "Correct! 🌴";
+                score += 10; updateUI(); 
+                feedback.innerText = "Correct! 🌴";
                 feedback.style.color = "var(--palm-green)";
                 document.getElementById('continue-btn').style.display = "block";
                 Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
-                feedback.innerText = "Wrong! -5 Points";
+                feedback.innerText = "Incorrect! -5 Points";
                 score = Math.max(0, score - 5); updateUI();
                 feedback.style.color = "var(--danger-red)";
             }
@@ -266,6 +281,7 @@ document.getElementById('continue-btn').onclick = () => {
 function updateUI() {
     document.getElementById('score').innerText = score;
     document.getElementById('lives').innerText = lives;
+    document.getElementById('q-left').innerText = questionPool.length;
 }
 
 function endGame(msg) { 
@@ -274,6 +290,7 @@ function endGame(msg) {
     location.reload(); 
 }
 
+// --- INPUTS ---
 function handleIn(x, y, down) {
     mousePos.prevX = mousePos.x; mousePos.prevY = mousePos.y;
     mousePos.x = x; mousePos.y = y; mousePos.down = down;
