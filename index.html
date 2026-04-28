@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice Pro</title>
+    <title>Tropical Essay Slice - Chill Edition</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -13,6 +13,7 @@
             --hibiscus-pink: #ff69b4;
             --text-dark: #2c3e50;
             --bg-light: #fdfaf0;
+            --danger-red: #e74c3c;
         }
 
         body, html {
@@ -20,7 +21,7 @@
             width: 100%; height: 100%;
             overflow: hidden;
             background-color: var(--bg-light);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Verdana', sans-serif;
             color: var(--text-dark);
             overscroll-behavior: none;
             touch-action: none;
@@ -30,332 +31,207 @@
             position: relative;
             width: 100vw; height: 100vh;
             background: linear-gradient(to bottom, #87CEEB 0%, #fdfaf0 100%);
+            transition: background 0.2s;
         }
 
-        canvas { display: block; filter: drop-shadow(0 0 10px rgba(0,0,0,0.1)); }
+        canvas { display: block; }
 
         #ui-layer {
             position: absolute;
-            top: 15px; left: 15px;
-            padding: 15px;
-            border-radius: 15px;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(5px);
+            top: 10px; left: 10px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
             border: 3px solid var(--sand-yellow);
             pointer-events: none;
             z-index: 10;
-            min-width: 180px;
         }
-
-        #audio-controls {
-            position: absolute;
-            top: 15px; right: 15px;
-            z-index: 20;
-        }
-
-        .audio-btn {
-            background: var(--palm-green);
-            border: none; border-radius: 50%;
-            width: 50px; height: 50px;
-            cursor: pointer; font-size: 24px;
-            box-shadow: 0 4px 0 #27ae60;
-            transition: transform 0.1s;
-        }
-
-        .audio-btn:active { transform: translateY(4px); box-shadow: none; }
 
         .modal {
             display: none;
             position: fixed;
             z-index: 300;
             left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
+            background-color: rgba(0, 0, 0, 0.6);
             justify-content: center; align-items: center;
-            backdrop-filter: blur(3px);
         }
 
         .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 25px;
-            border: 8px solid var(--sand-yellow);
-            max-width: 400px;
-            width: 85%;
+            background-color: #fffaf0;
+            padding: 25px;
+            border-radius: 20px;
+            border: 6px solid var(--sand-yellow);
+            max-width: 85%;
             text-align: center;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes popIn {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
         }
 
         .option-btn {
             display: block; width: 100%;
             padding: 14px; margin: 10px 0;
-            background: #f8f9fa;
-            border: 2px solid #dee2e6;
-            border-radius: 12px;
+            background: #fff;
+            border: 2px solid var(--ocean-blue);
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 1em;
-            transition: all 0.2s;
         }
-
-        .option-btn:hover { background: var(--ocean-blue); color: white; border-color: var(--ocean-blue); }
 
         .btn-action {
-            padding: 15px 40px;
+            padding: 15px 30px;
             background: var(--sunset-orange);
             color: white;
-            border-radius: 50px;
+            border-radius: 30px;
             border: none;
             font-weight: bold;
-            font-size: 1.1em;
             cursor: pointer;
-            box-shadow: 0 4px 0 #d35400;
         }
 
-        .btn-action:active { transform: translateY(2px); box-shadow: 0 2px 0 #d35400; }
-
-        #countdown {
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 120px;
-            color: white;
-            text-shadow: 0 0 20px rgba(0,0,0,0.5);
-            display: none;
-            z-index: 500;
-            font-weight: 900;
-        }
+        /* Explosion Flash Effect */
+        .flash-red { background: var(--danger-red) !important; }
     </style>
 </head>
 <body>
 
 <div id="game-container">
     <div id="ui-layer">
-        <strong style="color: var(--ocean-blue)">B1-B2 CHALLENGE</strong><br>
-        Score: <span id="score">0</span><br>
-        Lives: <span id="lives">❤️❤️❤️</span><br>
-        Progress: <span id="q-remaining">25</span>
+        <b>Relaxed Mode</b><br>
+        Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
+        <small style="color: var(--danger-red)">⚠️ Avoid the Bombs!</small>
     </div>
-
-    <div id="audio-controls">
-        <button class="audio-btn" id="mute-toggle">🔊</button>
-    </div>
-
-    <div id="countdown">3</div>
 
     <canvas id="gameCanvas"></canvas>
 
     <div id="start-screen" class="modal" style="display: flex;">
         <div class="modal-content">
-            <h1 style="color: var(--ocean-blue); margin-top:0;">🌴 Tropical Slice</h1>
-            <p>Slice fruits to reveal essay fragments. <br>Get the logic right to keep your score!</p>
-            <button class="btn-action" onclick="initGame()">PLAY NOW</button>
+            <h1 style="color: var(--ocean-blue)">Tropical Slice</h1>
+            <p>Slice fruits for questions. <br><b>DO NOT</b> slice the bombs!</p>
+            <button class="btn-action" onclick="startGame()">START GAME</button>
         </div>
     </div>
 
     <div id="question-modal" class="modal">
         <div class="modal-content">
-            <h2 id="q-header" style="color: var(--palm-green); margin-top:0;">Grammar Slice!</h2>
-            <p id="question-text" style="font-weight: bold; font-size: 1.1em;"></p>
+            <h2 style="color: var(--palm-green)">Structure Fragment</h2>
+            <p id="question-text" style="font-weight: bold;"></p>
             <div id="options-container"></div>
-            <div id="answer-feedback" style="font-weight: bold; margin: 15px; min-height: 24px;"></div>
-            <button id="continue-btn" class="btn-action" style="display:none; width:100%">CONTINUE</button>
-        </div>
-    </div>
-
-    <div id="game-over-modal" class="modal">
-        <div class="modal-content">
-            <h1 id="over-title">Game Over!</h1>
-            <p id="over-msg"></p>
-            <h2 id="final-score-display"></h2>
-            <button class="btn-action" onclick="location.reload()">REPLAY</button>
+            <div id="answer-feedback" style="font-weight: bold; margin: 10px; min-height: 20px;"></div>
+            <button id="continue-btn" class="btn-action" style="display:none;">CONTINUE</button>
         </div>
     </div>
 </div>
 
-<audio id="bg-music" loop>
-    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" type="audio/mpeg">
-</audio>
-
 <script>
-// --- CORE DATA ---
 const masterQuestions = [
     { q: "Which word is best to start a paragraph with a NEW idea?", options: ["Furthermore", "However", "In addition", "Overall"], answer: 2 },
     { q: "What is the main goal of the 'Introduction'?", options: ["To give every detail", "To state the thesis and background", "To list the bibliography", "To say goodbye"], answer: 1 },
     { q: "Which transition shows a 'Cause and Effect'?", options: ["For example", "Because of this", "On the other hand", "Firstly"], answer: 1 },
     { q: "In an essay, what does 'To conclude' mean?", options: ["To start the essay", "To give more evidence", "To summarize the main points", "To ask a new question"], answer: 2 },
-    { q: "Which phrase is more formal than 'I think'?", options: ["It is often argued that", "In my brain", "I believe", "I'm saying"], answer: 0 },
-    { q: "What is a 'Topic Sentence'?", options: ["The last sentence", "The sentence that gives the main idea of a paragraph", "A sentence about the weather", "The title of the book"], answer: 1 },
-    { q: "Which word shows a 'Contrast'?", options: ["Moreover", "Similarly", "However", "Consequently"], answer: 2 },
-    { q: "Which word adds information?", options: ["Alternatively", "Additionally", "Instead", "Unless"], answer: 1 },
-    { q: "The 'Thesis Statement' is usually found in the:", options: ["Conclusion", "Body Paragraph", "Introduction", "Reference List"], answer: 2 },
-    { q: "What should you do after giving a quote?", options: ["Nothing", "Explain how it supports your point", "Give another quote immediately", "Change the topic"], answer: 1 }
+    { q: "Which phrase is more formal than 'I think'?", options: ["It is often argued that", "In my brain", "I believe", "I'm saying"], answer: 0 }
 ];
 
-// --- GAME STATE ---
 let availableQuestions = [];
 let score = 0, lives = 3, gameActive = false;
-let fruits = [];
-let trail = [];
+let objects = [];
 let lastTime = 0;
 let mousePos = { x: 0, y: 0, prevX: 0, prevY: 0, down: false };
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const bgMusic = document.getElementById('bg-music');
-let isMuted = false;
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
 
-// --- INITIALIZATION ---
-function resize() { 
-    canvas.width = window.innerWidth; 
-    canvas.height = window.innerHeight; 
-}
-window.addEventListener('resize', resize); 
-resize();
-
-function initGame() {
-    document.getElementById('start-screen').style.display = 'none';
-    const cd = document.getElementById('countdown');
-    cd.style.display = 'block';
-    let count = 3;
-    
-    let timer = setInterval(() => {
-        count--;
-        cd.innerText = count;
-        if(count <= 0) {
-            clearInterval(timer);
-            cd.style.display = 'none';
-            startGame();
-        }
-    }, 800);
+class GameObject {
+    constructor(isBomb = false) {
+        this.radius = 45;
+        this.x = Math.random() * (canvas.width - 100) + 50;
+        this.y = canvas.height + this.radius;
+        
+        // --- LOWER SPEED PHYSICS ---
+        this.gravity = canvas.height * 0.45; // Reduced from 0.85
+        let verticalForce = Math.sqrt(2 * (canvas.height * 0.8) * this.gravity); 
+        this.vy = -verticalForce; 
+        this.vx = (Math.random() - 0.5) * (canvas.width * 0.2);
+        
+        this.isBomb = isBomb;
+        this.label = isBomb ? '💣' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
+        this.sliced = false;
+    }
+    update(dt) {
+        this.x += this.vx * dt; this.y += this.vy * dt; this.vy += this.gravity * dt;
+        if(this.x < this.radius || this.x > canvas.width - this.radius) this.vx *= -1;
+    }
+    draw() {
+        ctx.font = `${this.radius * 1.5}px Arial`; 
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(this.label, this.x, this.y);
+    }
 }
 
 function startGame() {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    bgMusic.play();
-    
     score = 0; lives = 3;
     availableQuestions = [...masterQuestions];
+    document.getElementById('start-screen').style.display = 'none';
     gameActive = true;
     lastTime = performance.now();
     updateUI();
     requestAnimationFrame(gameLoop);
 }
 
-// --- CLASSES ---
-class Fruit {
-    constructor() {
-        this.radius = 40 + Math.random() * 20;
-        this.x = Math.random() * (canvas.width - 100) + 50;
-        this.y = canvas.height + 50;
-        this.vx = (Math.random() - 0.5) * (canvas.width * 0.35);
-        this.vy = -(Math.sqrt(2 * canvas.height * (canvas.height * 0.8)));
-        this.gravity = canvas.height * 0.8;
-        this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 5;
-        this.emoji = ['🍍', '🥭', '🥥', '🍌', '🍉', '🥝'][Math.floor(Math.random()*6)];
-        this.sliced = false;
-    }
-    update(dt) {
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
-        this.vy += this.gravity * dt;
-        this.rotation += this.rotationSpeed * dt;
-    }
-    draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation);
-        ctx.font = `${this.radius * 1.5}px Arial`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(this.emoji, 0, 0);
-        ctx.restore();
-    }
-}
-
-// --- ENGINE ---
 function gameLoop(timestamp) {
     if (!gameActive) return;
     let dt = (timestamp - lastTime) / 1000;
     lastTime = timestamp;
     if (dt > 0.1) dt = 0.1;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Trail logic
-    if (mousePos.down) {
-        trail.push({x: mousePos.x, y: mousePos.y, life: 1.0});
+    // Spawn Logic: 2.5% chance to spawn; 20% of spawns are bombs
+    if (Math.random() < 0.025) {
+        let isBomb = Math.random() < 0.2;
+        objects.push(new GameObject(isBomb));
     }
-    updateTrail(dt);
 
-    // Spawn
-    if (Math.random() < 0.03) fruits.push(new Fruit());
-
-    for (let i = fruits.length - 1; i >= 0; i--) {
-        let f = fruits[i];
-        f.update(dt);
-        f.draw();
-
-        // Hit Detection
-        if (mousePos.down && !f.sliced) {
-            let dist = Math.hypot(f.x - mousePos.x, f.y - mousePos.y);
-            if (dist < f.radius * 1.5) {
-                f.sliced = true;
-                fruits.splice(i, 1);
-                gameActive = false;
-                triggerQuestion();
+    for (let i = objects.length - 1; i >= 0; i--) {
+        let obj = objects[i]; obj.update(dt); obj.draw();
+        
+        if (mousePos.down && !obj.sliced) {
+            if (Math.hypot(obj.x - mousePos.x, obj.y - mousePos.y) < obj.radius * 1.5) {
+                obj.sliced = true;
+                if (obj.isBomb) {
+                    triggerBomb();
+                    objects.splice(i, 1);
+                } else {
+                    objects.splice(i, 1);
+                    gameActive = false; 
+                    triggerQuestion();
+                }
             }
         }
 
-        // Out of bounds
-        if (f.y > canvas.height + 100) {
-            fruits.splice(i, 1);
-            lives--;
-            updateUI();
-            if (lives <= 0) endGame("The storm caught up to the island!");
+        if (obj.y > canvas.height + 100) {
+            if (!obj.isBomb) { lives--; updateUI(); } // Missing a fruit costs a life, missing a bomb is fine
+            objects.splice(i, 1);
+            if (lives <= 0) endGame("Game Over! Watch out for those bombs.");
         }
     }
-
-    requestAnimationFrame(gameLoop);
+    drawSlice(); requestAnimationFrame(gameLoop);
 }
 
-function updateTrail(dt) {
-    ctx.beginPath();
-    ctx.lineWidth = 8;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "rgba(255, 105, 180, 0.6)";
-
-    for (let i = 0; i < trail.length; i++) {
-        let p = trail[i];
-        p.life -= dt * 3;
-        if (p.life <= 0) {
-            trail.splice(i, 1);
-            i--;
-            continue;
-        }
-        if (i === 0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-    }
-    ctx.stroke();
+function triggerBomb() {
+    lives--;
+    updateUI();
+    // Visual feedback for explosion
+    const container = document.getElementById('game-container');
+    container.classList.add('flash-red');
+    setTimeout(() => container.classList.remove('flash-red'), 150);
+    
+    if (lives <= 0) endGame("BOOM! The bomb ended your journey.");
 }
 
 function triggerQuestion() {
-    if (availableQuestions.length === 0) {
-        endGame("You are a Tropical Scholar!");
-        return;
-    }
-
     const modal = document.getElementById('question-modal');
     const container = document.getElementById('options-container');
     const feedback = document.getElementById('answer-feedback');
     
     const qIndex = Math.floor(Math.random() * availableQuestions.length);
-    const q = availableQuestions.splice(qIndex, 1)[0]; 
+    const q = availableQuestions[qIndex];
 
     document.getElementById('question-text').innerText = q.q;
     container.innerHTML = ""; feedback.innerText = "";
@@ -363,21 +239,17 @@ function triggerQuestion() {
     
     q.options.forEach((opt, idx) => {
         const b = document.createElement('button');
-        b.className = 'option-btn';
-        b.innerText = opt;
+        b.className = 'option-btn'; b.innerText = opt;
         b.onclick = () => {
             if (idx === q.answer) {
-                score += 10;
-                updateUI();
-                feedback.innerText = "EXCELLENT! 🥥";
+                score += 10; updateUI(); feedback.innerText = "Correct! 🌴";
                 feedback.style.color = "var(--palm-green)";
                 document.getElementById('continue-btn').style.display = "block";
                 Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
-                feedback.innerText = "Try another choice...";
-                feedback.style.color = "var(--sunset-orange)";
-                b.style.opacity = "0.5";
-                b.disabled = true;
+                feedback.innerText = "Wrong! -5 Points";
+                score = Math.max(0, score - 5); updateUI();
+                feedback.style.color = "var(--danger-red)";
             }
         };
         container.appendChild(b);
@@ -387,54 +259,40 @@ function triggerQuestion() {
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
-    gameActive = true;
-    lastTime = performance.now();
+    gameActive = true; lastTime = performance.now();
     requestAnimationFrame(gameLoop);
 };
 
 function updateUI() {
     document.getElementById('score').innerText = score;
-    document.getElementById('q-remaining').innerText = availableQuestions.length;
-    let heartStr = "";
-    for(let i=0; i<lives; i++) heartStr += "❤️";
-    document.getElementById('lives').innerText = heartStr || "NONE";
+    document.getElementById('lives').innerText = lives;
 }
 
-function endGame(msg) {
-    gameActive = false;
-    document.getElementById('game-over-modal').style.display = "flex";
-    document.getElementById('over-msg').innerText = msg;
-    document.getElementById('final-score-display').innerText = "Final Score: " + score;
+function endGame(msg) { 
+    gameActive = false; 
+    alert(msg + "\nFinal Score: " + score); 
+    location.reload(); 
 }
 
-// --- INPUTS ---
 function handleIn(x, y, down) {
     mousePos.prevX = mousePos.x; mousePos.prevY = mousePos.y;
     mousePos.x = x; mousePos.y = y; mousePos.down = down;
 }
-
 canvas.addEventListener('mousedown', (e) => handleIn(e.clientX, e.clientY, true));
 canvas.addEventListener('mousemove', (e) => handleIn(e.clientX, e.clientY, mousePos.down));
-window.addEventListener('mouseup', () => { mousePos.down = false; trail = []; });
+window.addEventListener('mouseup', () => mousePos.down = false);
+canvas.addEventListener('touchstart', (e) => handleIn(e.touches[0].clientX, e.touches[0].clientY, true), {passive:false});
+canvas.addEventListener('touchmove', (e) => { handleIn(e.touches[0].clientX, e.touches[0].clientY, true); e.preventDefault(); }, {passive:false});
+window.addEventListener('touchend', () => mousePos.down = false);
 
-canvas.addEventListener('touchstart', (e) => {
-    const t = e.touches[0];
-    handleIn(t.clientX, t.clientY, true);
-}, {passive:false});
-
-canvas.addEventListener('touchmove', (e) => {
-    const t = e.touches[0];
-    handleIn(t.clientX, t.clientY, true);
-    e.preventDefault();
-}, {passive:false});
-
-window.addEventListener('touchend', () => { mousePos.down = false; trail = []; });
-
-document.getElementById('mute-toggle').onclick = () => {
-    isMuted = !isMuted; 
-    bgMusic.muted = isMuted;
-    document.getElementById('mute-toggle').innerText = isMuted ? "🌑" : "🔊";
-};
+function drawSlice() {
+    if (mousePos.down) {
+        ctx.beginPath(); ctx.moveTo(mousePos.prevX, mousePos.prevY);
+        ctx.lineTo(mousePos.x, mousePos.y); 
+        ctx.strokeStyle = "var(--hibiscus-pink)";
+        ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.stroke();
+    }
+}
 </script>
 </body>
 </html>
