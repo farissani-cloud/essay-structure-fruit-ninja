@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Mastery Edition</title>
+    <title>Tropical Essay Slice - Freeze Frame Edition</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -125,7 +125,7 @@
     <div id="start-screen" class="modal" style="display: flex;">
         <div class="modal-content">
             <h1 style="color: var(--ocean-blue); font-size: 24px;">Tropical Slice: Essay Pro</h1>
-            <p>Slice fruits to start questions.<br>Speed: Relaxed Mode 🏝️</p>
+            <p>Slice fruits to start questions.<br>Fruits will freeze during questions! ❄️</p>
             <button class="btn-action" onclick="startGame()">START SESSION</button>
         </div>
     </div>
@@ -151,7 +151,7 @@ function toggleMusic() {
     document.getElementById('music-ctrl').innerText = isMuted ? '🔇' : '🔊';
 }
 
-// --- FULL QUESTION DATA ---
+// --- FULL QUESTION DATA RETAINED ---
 const masterQuestions = [
     { q: "What is an academic essay?", options: ["A creative story for friends", "A formal piece of writing presenting an argument or analysis", "A list of personal opinions without a topic", "A short poem"], answer: 1 },
     { q: "Which type of essay explores similarities and differences?", options: ["Descriptive", "Narrative", "Compare and Contrast", "Expository"], answer: 2 },
@@ -191,7 +191,6 @@ let gravity, verticalPower;
 function resize() { 
     canvas.width = window.innerWidth; 
     canvas.height = window.innerHeight; 
-    // SLOW SPEED CALIBRATION:
     gravity = canvas.height * 0.45; 
     verticalPower = Math.sqrt(2 * (canvas.height * 0.75) * gravity);
 }
@@ -206,6 +205,7 @@ class FruitHalf {
         this.side = side;
     }
     update(dt) {
+        if (!gameActive) return; // FREEZE LOGIC
         this.x += this.vx * dt; this.y += this.vy * dt;
         this.vy += gravity * dt; this.angle += this.rotationSpeed * dt;
     }
@@ -227,7 +227,10 @@ class GameObject {
         this.isBomb = isBomb;
         this.label = isBomb ? '💣' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
     }
-    update(dt) { this.x += this.vx * dt; this.y += this.vy * dt; this.vy += gravity * dt; }
+    update(dt) { 
+        if (!gameActive) return; // FREEZE LOGIC
+        this.x += this.vx * dt; this.y += this.vy * dt; this.vy += gravity * dt; 
+    }
     draw() {
         ctx.font = "50px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillText(this.label, this.x, this.y);
@@ -235,7 +238,7 @@ class GameObject {
 }
 
 function startGame() {
-    bgMusic.play().catch(e => console.log("Audio needs user interaction"));
+    bgMusic.play().catch(e => console.log("Audio interaction required"));
     score = 0; lives = 3; timeLeft = 420; objects = []; particles = [];
     questionQueue = [...masterQuestions].sort(() => Math.random() - 0.5);
     document.getElementById('start-screen').style.display = 'none';
@@ -248,49 +251,55 @@ function startGame() {
 }
 
 function gameLoop() {
-    if (!gameActive) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        updateParticles(0.016);
-        requestAnimationFrame(gameLoop);
-        return;
+    let dt = 0.016; 
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Only spawn new items if game is un-frozen
+    if (gameActive && Math.random() < 0.015 && objects.length < 3) {
+        objects.push(new GameObject(Math.random() < 0.15));
     }
-    let dt = 0.016; ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Controlled spawn rate
-    if (Math.random() < 0.015 && objects.length < 3) objects.push(new GameObject(Math.random() < 0.15));
-
+    // Process Objects
     for (let i = objects.length - 1; i >= 0; i--) {
-        let obj = objects[i]; obj.update(dt); obj.draw();
+        let obj = objects[i]; 
+        obj.update(dt); 
+        obj.draw();
 
-        if (slicePoints.length > 1) {
+        // Slice detection only works if game is un-frozen
+        if (gameActive && slicePoints.length > 1) {
             let hit = false;
             for(let j=0; j<slicePoints.length-1; j++) {
                 if (lineCircleIntersect(slicePoints[j], slicePoints[j+1], obj, obj.radius)) { hit = true; break; }
             }
             if (hit) {
-                if (obj.isBomb) { triggerBomb(); } 
-                else {
+                if (obj.isBomb) { 
+                    triggerBomb(); 
+                } else {
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'left'));
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'right'));
-                    gameActive = false; setTimeout(triggerQuestion, 150);
+                    gameActive = false; // FREEZE
+                    setTimeout(triggerQuestion, 150);
                 }
                 objects.splice(i, 1); continue;
             }
         }
-        if (obj.y > canvas.height + 100) {
+
+        if (gameActive && obj.y > canvas.height + 100) {
             if (!obj.isBomb) { lives--; updateUI(); }
             objects.splice(i, 1);
             if (lives <= 0) endGame("Session Over!");
         }
     }
-    updateParticles(dt); drawSlice(); requestAnimationFrame(gameLoop);
-}
 
-function updateParticles(dt) {
+    // Process Particles
     for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].update(dt); particles[i].draw();
-        if (particles[i].y > canvas.height + 100) particles.splice(i, 1);
+        particles[i].update(dt); 
+        particles[i].draw();
+        if (gameActive && particles[i].y > canvas.height + 100) particles.splice(i, 1);
     }
+
+    drawSlice(); 
+    requestAnimationFrame(gameLoop);
 }
 
 function lineCircleIntersect(p1, p2, circle, r) {
@@ -334,7 +343,7 @@ function triggerQuestion() {
             } else {
                 score = Math.max(0, score-5); updateUI();
                 document.getElementById('answer-feedback').innerText = "TRY AGAIN SOON!";
-                questionQueue.push(questionQueue.shift()); // Re-queue missed
+                questionQueue.push(questionQueue.shift());
                 document.getElementById('continue-btn').style.display = "block";
             }
             Array.from(container.children).forEach(btn => btn.disabled = true);
@@ -346,7 +355,8 @@ function triggerQuestion() {
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
-    slicePoints = []; gameActive = true;
+    slicePoints = []; 
+    gameActive = true; // UN-FREEZE
 };
 
 function updateUI() {
