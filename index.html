@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Sound Fixed</title>
+    <title>Tropical Essay Slice - Audio Fixed</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -129,11 +129,11 @@
 
     <button id="music-ctrl" onclick="toggleMusic()">🔊</button>
 
-    <audio id="bg-music" loop>
-        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    <audio id="bg-music" loop preload="auto">
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-10.mp3" type="audio/mpeg">
     </audio>
-    <audio id="slash-sound">
-        <source src="https://actions.google.com/sounds/v1/foley/sword_clash.ogg" type="audio/ogg">
+    <audio id="slash-sound" preload="auto">
+        <source src="https://assets.mixkit.co/active_storage/sfx/2364/2364-preview.mp3" type="audio/mpeg">
     </audio>
 
     <canvas id="gameCanvas"></canvas>
@@ -165,6 +165,10 @@ const bgMusic = document.getElementById('bg-music');
 const slashSound = document.getElementById('slash-sound');
 let isMuted = false;
 
+// Background music volume slightly lower so slash stands out
+bgMusic.volume = 0.4;
+slashSound.volume = 1.0;
+
 function toggleMusic() {
     isMuted = !isMuted;
     bgMusic.muted = isMuted;
@@ -174,8 +178,9 @@ function toggleMusic() {
 
 function playSlash() {
     if (!isMuted) {
-        slashSound.currentTime = 0; // Reset to start for rapid clicks
-        slashSound.play().catch(e => {});
+        // Clone the node so multiple slashes can play simultaneously
+        const soundClone = slashSound.cloneNode();
+        soundClone.play().catch(e => console.log("Sound play error:", e));
     }
 }
 
@@ -282,7 +287,8 @@ class GameObject {
 
 function startGame(lvl) {
     setDifficulty(lvl);
-    bgMusic.play().catch(e => console.log("Audio interaction required"));
+    // Explicitly start music and ensure it's unpaused
+    bgMusic.play();
     score = 0; lives = 3; timeLeft = 420; objects = []; particles = [];
     questionQueue = [...masterQuestions].sort(() => Math.random() - 0.5);
     document.getElementById('start-screen').style.display = 'none';
@@ -316,10 +322,10 @@ function gameLoop() {
                 if (obj.isBomb) { 
                     triggerBomb(); 
                 } else {
-                    playSlash(); // PLAY SOUND EFFECT
+                    playSlash(); // Sound will now play via clones
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'left'));
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'right'));
-                    gameActive = false; 
+                    gameActive = false; // Physics pause
                     setTimeout(triggerQuestion, 150);
                 }
                 objects.splice(i, 1); continue;
