@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Freeze Frame Edition</title>
+    <title>Tropical Essay Slice - Mastery Edition</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -60,10 +60,8 @@
             display: flex; align-items: center; justify-content: center;
         }
 
-        #timer-display { color: var(--danger-red); font-weight: bold; }
-
         .modal {
-            display: none;
+            display: flex;
             position: fixed;
             z-index: 300;
             left: 0; top: 0; width: 100%; height: 100%;
@@ -80,6 +78,21 @@
             text-align: center;
         }
 
+        .level-btn {
+            display: block; width: 100%;
+            padding: 12px; margin: 10px 0;
+            color: white;
+            border-radius: 15px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .lvl-1 { background-color: var(--palm-green); }
+        .lvl-2 { background-color: var(--sunset-orange); }
+        .lvl-3 { background-color: var(--danger-red); }
+
         .option-btn {
             display: block; width: 100%;
             padding: 12px; margin: 8px 0;
@@ -93,7 +106,7 @@
 
         .btn-action {
             padding: 12px 24px;
-            background: var(--sunset-orange);
+            background: var(--ocean-blue);
             color: white;
             border-radius: 30px;
             border: none;
@@ -122,15 +135,17 @@
 
     <canvas id="gameCanvas"></canvas>
 
-    <div id="start-screen" class="modal" style="display: flex;">
+    <div id="start-screen" class="modal">
         <div class="modal-content">
-            <h1 style="color: var(--ocean-blue); font-size: 24px;">Tropical Slice: Essay Pro</h1>
-            <p>Slice fruits to start questions.<br>Fruits will freeze during questions! ❄️</p>
-            <button class="btn-action" onclick="startGame()">START SESSION</button>
+            <h1 style="color: var(--ocean-blue); font-size: 24px;">Tropical Slice</h1>
+            <p>Select your speed level:</p>
+            <button class="level-btn lvl-1" onclick="startGame(1)">Level 1: Slow 🏝️</button>
+            <button class="level-btn lvl-2" onclick="startGame(2)">Level 2: Intermediate 🌊</button>
+            <button class="level-btn lvl-3" onclick="startGame(3)">Level 3: Fast ⚡</button>
         </div>
     </div>
 
-    <div id="question-modal" class="modal">
+    <div id="question-modal" class="modal" style="display:none;">
         <div class="modal-content">
             <h2 style="color: var(--palm-green); font-size: 20px;">Concept Check</h2>
             <p id="question-text" style="font-weight: bold; font-size: 15px;"></p>
@@ -186,13 +201,28 @@ const ctx = canvas.getContext('2d');
 let gameActive = false, score = 0, lives = 3, timeLeft = 420;
 let objects = [], particles = [], slicePoints = [];
 let questionQueue = [];
-let gravity, verticalPower;
+let gravity, verticalPower, spawnChance;
+
+function setDifficulty(lvl) {
+    const h = canvas.height;
+    if (lvl === 1) {
+        gravity = h * 0.35; 
+        verticalPower = Math.sqrt(2 * (h * 0.7) * gravity);
+        spawnChance = 0.012;
+    } else if (lvl === 2) {
+        gravity = h * 0.65;
+        verticalPower = Math.sqrt(2 * (h * 0.75) * gravity);
+        spawnChance = 0.02;
+    } else {
+        gravity = h * 1.0;
+        verticalPower = Math.sqrt(2 * (h * 0.85) * gravity);
+        spawnChance = 0.035;
+    }
+}
 
 function resize() { 
     canvas.width = window.innerWidth; 
     canvas.height = window.innerHeight; 
-    gravity = canvas.height * 0.45; 
-    verticalPower = Math.sqrt(2 * (canvas.height * 0.75) * gravity);
 }
 window.addEventListener('resize', resize); resize();
 
@@ -205,7 +235,7 @@ class FruitHalf {
         this.side = side;
     }
     update(dt) {
-        if (!gameActive) return; // FREEZE LOGIC
+        if (!gameActive) return; 
         this.x += this.vx * dt; this.y += this.vy * dt;
         this.vy += gravity * dt; this.angle += this.rotationSpeed * dt;
     }
@@ -228,7 +258,7 @@ class GameObject {
         this.label = isBomb ? '💣' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
     }
     update(dt) { 
-        if (!gameActive) return; // FREEZE LOGIC
+        if (!gameActive) return; 
         this.x += this.vx * dt; this.y += this.vy * dt; this.vy += gravity * dt; 
     }
     draw() {
@@ -237,7 +267,8 @@ class GameObject {
     }
 }
 
-function startGame() {
+function startGame(lvl) {
+    setDifficulty(lvl);
     bgMusic.play().catch(e => console.log("Audio interaction required"));
     score = 0; lives = 3; timeLeft = 420; objects = []; particles = [];
     questionQueue = [...masterQuestions].sort(() => Math.random() - 0.5);
@@ -254,18 +285,15 @@ function gameLoop() {
     let dt = 0.016; 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Only spawn new items if game is un-frozen
-    if (gameActive && Math.random() < 0.015 && objects.length < 3) {
+    if (gameActive && Math.random() < spawnChance && objects.length < 3) {
         objects.push(new GameObject(Math.random() < 0.15));
     }
 
-    // Process Objects
     for (let i = objects.length - 1; i >= 0; i--) {
         let obj = objects[i]; 
         obj.update(dt); 
         obj.draw();
 
-        // Slice detection only works if game is un-frozen
         if (gameActive && slicePoints.length > 1) {
             let hit = false;
             for(let j=0; j<slicePoints.length-1; j++) {
@@ -277,7 +305,7 @@ function gameLoop() {
                 } else {
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'left'));
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'right'));
-                    gameActive = false; // FREEZE
+                    gameActive = false; 
                     setTimeout(triggerQuestion, 150);
                 }
                 objects.splice(i, 1); continue;
@@ -291,7 +319,6 @@ function gameLoop() {
         }
     }
 
-    // Process Particles
     for (let i = particles.length - 1; i >= 0; i--) {
         particles[i].update(dt); 
         particles[i].draw();
@@ -331,6 +358,7 @@ function triggerQuestion() {
     container.innerHTML = "";
     document.getElementById('answer-feedback').innerText = "";
     document.getElementById('continue-btn').style.display = "none";
+    document.getElementById('question-modal').style.display = "flex";
 
     q.options.forEach((opt, idx) => {
         const b = document.createElement('button');
@@ -350,13 +378,12 @@ function triggerQuestion() {
         };
         container.appendChild(b);
     });
-    document.getElementById('question-modal').style.display = "flex";
 }
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
     slicePoints = []; 
-    gameActive = true; // UN-FREEZE
+    gameActive = true; 
 };
 
 function updateUI() {
