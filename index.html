@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Audio Edition</title>
+    <title>Tropical Essay Slice - Mastery Edition</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -47,22 +47,17 @@
             font-size: 14px;
         }
 
-        /* Music Toggle Button */
         #music-ctrl {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 10px; right: 10px;
             z-index: 20;
             background: white;
             border: 2px solid var(--ocean-blue);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px;
             cursor: pointer;
             font-size: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
         }
 
         #timer-display { color: var(--danger-red); font-weight: bold; }
@@ -122,15 +117,15 @@
     <button id="music-ctrl" onclick="toggleMusic()">🔊</button>
 
     <audio id="bg-music" loop>
-        <source src="your-audio-file.mp3" type="audio/mpeg">
+        <source src="your-tropical-audio.mp3" type="audio/mpeg">
     </audio>
 
     <canvas id="gameCanvas"></canvas>
 
     <div id="start-screen" class="modal" style="display: flex;">
         <div class="modal-content">
-            <h1 style="color: var(--ocean-blue); font-size: 24px;">Tropical Slice</h1>
-            <p>Master the 25 fragments.<br>Avoid bombs!</p>
+            <h1 style="color: var(--ocean-blue); font-size: 24px;">Tropical Slice: Essay Pro</h1>
+            <p>Slice fruits to start questions.<br>Speed: Relaxed Mode 🏝️</p>
             <button class="btn-action" onclick="startGame()">START SESSION</button>
         </div>
     </div>
@@ -150,43 +145,42 @@
 // --- AUDIO CONTROL ---
 const bgMusic = document.getElementById('bg-music');
 let isMuted = false;
-
 function toggleMusic() {
     isMuted = !isMuted;
     bgMusic.muted = isMuted;
     document.getElementById('music-ctrl').innerText = isMuted ? '🔇' : '🔊';
 }
 
-// --- QUESTIONS (RETAINED) ---
+// --- FULL QUESTION DATA ---
 const masterQuestions = [
-    { q: "What is an academic essay?", options: ["A creative story for friends", "A formal piece of writing presenting an argument or analysis", "A list of personal opinions without a topic", "A short poem"], answer: 1, rationale: "Academic essays are formal pieces for argument or analysis aimed at academic readers." },
-    { q: "Which type of essay explores similarities and differences?", options: ["Descriptive", "Narrative", "Compare and Contrast", "Expository"], answer: 2, rationale: "Compare and contrast essays specifically examine similarities and differences." },
-    { q: "Which component typically follows the Introduction?", options: ["Conclusion", "Body Paragraph 1", "Bibliography", "Hook"], answer: 1, rationale: "The basic structure flows from Introduction to the first Body Paragraph." },
-    { q: "What are the three essential parts of an Introduction?", options: ["Topic, Evidence, Explanation", "Hook, Background, Thesis", "Restatement, Summary, Final Thoughts", "Anecdote, Statistics, Quotes"], answer: 1, rationale: "A proper introduction contains a hook, background info, and a thesis statement." },
-    { q: "What is the primary purpose of a 'Hook'?", options: ["To summarize the argument", "To grab attention", "To provide technical definitions", "To list sources"], answer: 1, rationale: "Hooks are designed to grab the reader's attention immediately." },
-    { q: "Which hook uses a short, personal story?", options: ["Statistic", "Anecdote", "Vivid description", "Intriguing Question"], answer: 1, rationale: "An anecdote is a short personal story relating to the topic." },
-    { q: "What does a 'Vivid Description' hook aim to do?", options: ["Present hard data", "Use an evocative image to set a mood", "Ask a direct question", "Quote a famous person"], answer: 1, rationale: "Vivid descriptions use sensory imagery to set a specific mood." },
-    { q: "An WHO stat about water access is an example of what hook?", options: ["Anecdote", "Quote", "Statistic or Fact", "Vivid Description"], answer: 2, rationale: "Using data points from organizations like WHO is a Statistic/Fact hook." },
-    { q: "What is the role of 'Background Information'?", options: ["State the main argument", "Provide context and definitions", "Conclude the paragraph", "Present evidence"], answer: 1, rationale: "Background info provides the necessary context for the reader to understand the topic." },
-    { q: "What is the concise, one-sentence summary of the main argument?", options: ["Hook", "Topic Sentence", "Thesis Statement", "Supporting Detail"], answer: 2, rationale: "The thesis statement summarizes the entire argument and purpose." },
-    { q: "A thesis formula includes Topic, Claim, Conjunction, and...?", options: ["A list of quotes", "Three main points", "A bibliography", "A summary of the conclusion"], answer: 1, rationale: "Thesis statements typically outline the main points to be discussed." },
-    { q: "Where is a 'Topic Sentence' usually located?", options: ["Last sentence of the essay", "First sentence of a paragraph", "Middle of the introduction", "End of the bibliography"], answer: 1, rationale: "A topic sentence informs the reader what the paragraph is about, usually at the start." },
-    { q: "A topic sentence formula uses a Transition + Topic + Claim + ...?", options: ["Hook", "Main Point", "Evidence", "Final Thoughts"], answer: 1, rationale: "The formula is: Transitional expression + Topic + Claim + Main Point." },
-    { q: "A sentence focusing on one specific cause of pollution is likely a:", options: ["Thesis Statement", "Topic Sentence", "Hook", "Concluding Sentence"], answer: 1, rationale: "Topic sentences focus on a single main idea for one paragraph." },
-    { q: "What should a paragraph's Concluding Sentence do?", options: ["Introduce the next topic", "Summarize the idea and give a final thought", "Give first evidence", "State background info"], answer: 1, rationale: "It wraps up the paragraph with a summary and a final reflection." },
-    { q: "In the conclusion, what is the purpose of a 'Restatement'?", options: ["Repeat the thesis exactly", "Rephrase the argument in new words", "Provide a new hook", "Add new evidence"], answer: 1, rationale: "Restatements remind the reader of the central point without exact word-for-word repetition." },
-    { q: "Which is NOT a type of supporting detail mentioned in the text?", options: ["Expert opinions", "Random guesses", "Definitions", "Anecdotes"], answer: 1, rationale: "Academic writing requires credible evidence, not random guesses." },
-    { q: "In the 'Point-by-Point Method', what follows Evidence?", options: ["Topic Sentence", "Example and Explanation", "Thesis Statement", "Bibliography"], answer: 1, rationale: "In body paragraphs, evidence is followed by specific examples and explanations." },
-    { q: "Which transition is best for ADDING information?", options: ["As a result", "Furthermore", "While", "Thus"], answer: 1, rationale: "'Furthermore' and 'In addition' are used to add points to an argument." },
-    { q: "The Conclusion section consists of:", options: ["Hook, Context, Argument", "Restate Thesis, Restate Topics, Concluding Statement", "Point 1, 2, 3", "Transition, Claim, Reason"], answer: 1, rationale: "The conclusion wraps up by restating the thesis/points and giving a final statement." },
-    { q: "Why is 'TikTok' used as a central example in the text?", options: ["To teach video editing", "To demonstrate negative impacts for a sample thesis", "To encourage social media use", "To explain app history"], answer: 1, rationale: "TikTok's impact on teens is used as a consistent model for thesis and topic sentences." },
-    { q: "Which is an 'Intriguing Question' hook from the text?", options: ["What is the capital of Malaysia?", "Can one small act of kindness change a life?", "How many hours do you use TikTok?", "Is social media good?"], answer: 1, rationale: "The text highlights profound questions designed to spark curiosity." },
-    { q: "What should the final 'Concluding Statement' of an essay provide?", options: ["Personal hobbies", "A final thought or look into the future", "A repeat of the first sentence", "A definition of a hook"], answer: 1, rationale: "It leaves the reader with a lasting impression or a future perspective." },
-    { q: "Why should cell phone use while driving be banned according to the text?", options: ["It makes drivers happy", "It causes distractions and reduces reaction time", "It is expensive", "It is illegal everywhere"], answer: 1, rationale: "The sample essay focuses on the safety risks and distractions caused by phones." },
-    { q: "What does the transition 'Therefore' usually indicate?", options: ["A new story", "A logical conclusion or result", "A contrast", "An introductory hook"], answer: 1, rationale: "'Therefore' and 'Thus' signal a result based on previous info." }
+    { q: "What is an academic essay?", options: ["A creative story for friends", "A formal piece of writing presenting an argument or analysis", "A list of personal opinions without a topic", "A short poem"], answer: 1 },
+    { q: "Which type of essay explores similarities and differences?", options: ["Descriptive", "Narrative", "Compare and Contrast", "Expository"], answer: 2 },
+    { q: "Which component typically follows the Introduction?", options: ["Conclusion", "Body Paragraph 1", "Bibliography", "Hook"], answer: 1 },
+    { q: "What are the three essential parts of an Introduction?", options: ["Topic, Evidence, Explanation", "Hook, Background, Thesis", "Restatement, Summary, Final Thoughts", "Anecdote, Statistics, Quotes"], answer: 1 },
+    { q: "What is the primary purpose of a 'Hook'?", options: ["To summarize the argument", "To grab attention", "To provide technical definitions", "To list sources"], answer: 1 },
+    { q: "Which hook uses a short, personal story?", options: ["Statistic", "Anecdote", "Vivid description", "Intriguing Question"], answer: 1 },
+    { q: "What does a 'Vivid Description' hook aim to do?", options: ["Present hard data", "Use an evocative image to set a mood", "Ask a direct question", "Quote a famous person"], answer: 1 },
+    { q: "An WHO stat about water access is an example of what hook?", options: ["Anecdote", "Quote", "Statistic or Fact", "Vivid Description"], answer: 2 },
+    { q: "What is the role of 'Background Information'?", options: ["State the main argument", "Provide context and definitions", "Conclude the paragraph", "Present evidence"], answer: 1 },
+    { q: "What is the concise, one-sentence summary of the main argument?", options: ["Hook", "Topic Sentence", "Thesis Statement", "Supporting Detail"], answer: 2 },
+    { q: "A thesis formula includes Topic, Claim, Conjunction, and...?", options: ["A list of quotes", "Three main points", "A bibliography", "A summary of the conclusion"], answer: 1 },
+    { q: "Where is a 'Topic Sentence' usually located?", options: ["Last sentence of the essay", "First sentence of a paragraph", "Middle of the introduction", "End of the bibliography"], answer: 1 },
+    { q: "A topic sentence formula uses a Transition + Topic + Claim + ...?", options: ["Hook", "Main Point", "Evidence", "Final Thoughts"], answer: 1 },
+    { q: "A sentence focusing on one specific cause of pollution is likely a:", options: ["Thesis Statement", "Topic Sentence", "Hook", "Concluding Sentence"], answer: 1 },
+    { q: "What should a paragraph's Concluding Sentence do?", options: ["Introduce the next topic", "Summarize the idea and give a final thought", "Give first evidence", "State background info"], answer: 1 },
+    { q: "In the conclusion, what is the purpose of a 'Restatement'?", options: ["Repeat the thesis exactly", "Rephrase the argument in new words", "Provide a new hook", "Add new evidence"], answer: 1 },
+    { q: "Which is NOT a type of supporting detail mentioned in the text?", options: ["Expert opinions", "Random guesses", "Definitions", "Anecdotes"], answer: 1 },
+    { q: "In the 'Point-by-Point Method', what follows Evidence?", options: ["Topic Sentence", "Example and Explanation", "Thesis Statement", "Bibliography"], answer: 1 },
+    { q: "Which transition is best for ADDING information?", options: ["As a result", "Furthermore", "While", "Thus"], answer: 1 },
+    { q: "The Conclusion section consists of:", options: ["Hook, Context, Argument", "Restate Thesis, Restate Topics, Concluding Statement", "Point 1, 2, 3", "Transition, Claim, Reason"], answer: 1 },
+    { q: "Why is 'TikTok' used as a central example in the text?", options: ["To teach video editing", "To demonstrate negative impacts for a sample thesis", "To encourage social media use", "To explain app history"], answer: 1 },
+    { q: "Which is an 'Intriguing Question' hook from the text?", options: ["What is the capital of Malaysia?", "Can one small act of kindness change a life?", "How many hours do you use TikTok?", "Is social media good?"], answer: 1 },
+    { q: "What should the final 'Concluding Statement' of an essay provide?", options: ["Personal hobbies", "A final thought or look into the future", "A repeat of the first sentence", "A definition of a hook"], answer: 1 },
+    { q: "Why should cell phone use while driving be banned according to the text?", options: ["It makes drivers happy", "It causes distractions and reduces reaction time", "It is expensive", "It is illegal everywhere"], answer: 1 },
+    { q: "What does the transition 'Therefore' usually indicate?", options: ["A new story", "A logical conclusion or result", "A contrast", "An introductory hook"], answer: 1 }
 ];
 
-// --- GAME LOGIC ---
+// --- GAME ENGINE ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let gameActive = false, score = 0, lives = 3, timeLeft = 420;
@@ -197,19 +191,18 @@ let gravity, verticalPower;
 function resize() { 
     canvas.width = window.innerWidth; 
     canvas.height = window.innerHeight; 
-    gravity = canvas.height * 0.8; 
-    verticalPower = Math.sqrt(2 * (canvas.height * 0.82) * gravity);
+    // SLOW SPEED CALIBRATION:
+    gravity = canvas.height * 0.45; 
+    verticalPower = Math.sqrt(2 * (canvas.height * 0.75) * gravity);
 }
 window.addEventListener('resize', resize); resize();
 
 class FruitHalf {
     constructor(x, y, vx, vy, label, side) {
         this.x = x; this.y = y;
-        this.vx = vx + (side === 'left' ? -150 : 150);
-        this.vy = vy;
-        this.label = label;
-        this.angle = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 8;
+        this.vx = vx + (side === 'left' ? -120 : 120);
+        this.vy = vy; this.label = label; this.angle = 0;
+        this.rotationSpeed = (Math.random() - 0.5) * 5;
         this.side = side;
     }
     update(dt) {
@@ -227,10 +220,10 @@ class FruitHalf {
 class GameObject {
     constructor(isBomb = false) {
         this.radius = 35;
-        this.x = Math.random() * (canvas.width - 100) + 50;
+        this.x = Math.random() * (canvas.width - 140) + 70;
         this.y = canvas.height + 50;
         this.vy = -verticalPower; 
-        this.vx = (Math.random() - 0.5) * (canvas.width * 0.4); 
+        this.vx = (Math.random() - 0.5) * (canvas.width * 0.2); 
         this.isBomb = isBomb;
         this.label = isBomb ? '💣' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
     }
@@ -242,9 +235,7 @@ class GameObject {
 }
 
 function startGame() {
-    // Start Audio on Interaction
-    bgMusic.play().catch(e => console.log("Audio playback requires interaction"));
-    
+    bgMusic.play().catch(e => console.log("Audio needs user interaction"));
     score = 0; lives = 3; timeLeft = 420; objects = []; particles = [];
     questionQueue = [...masterQuestions].sort(() => Math.random() - 0.5);
     document.getElementById('start-screen').style.display = 'none';
@@ -265,7 +256,8 @@ function gameLoop() {
     }
     let dt = 0.016; ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (Math.random() < 0.02) objects.push(new GameObject(Math.random() < 0.15));
+    // Controlled spawn rate
+    if (Math.random() < 0.015 && objects.length < 3) objects.push(new GameObject(Math.random() < 0.15));
 
     for (let i = objects.length - 1; i >= 0; i--) {
         let obj = objects[i]; obj.update(dt); obj.draw();
@@ -339,14 +331,13 @@ function triggerQuestion() {
                 score += 10; questionQueue.shift(); updateUI();
                 document.getElementById('answer-feedback').innerText = "CORRECT! 🌴";
                 document.getElementById('continue-btn').style.display = "block";
-                Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
                 score = Math.max(0, score-5); updateUI();
-                document.getElementById('answer-feedback').innerText = "TRY AGAIN LATER!";
-                questionQueue.push(questionQueue.shift());
+                document.getElementById('answer-feedback').innerText = "TRY AGAIN SOON!";
+                questionQueue.push(questionQueue.shift()); // Re-queue missed
                 document.getElementById('continue-btn').style.display = "block";
-                Array.from(container.children).forEach(btn => btn.disabled = true);
             }
+            Array.from(container.children).forEach(btn => btn.disabled = true);
         };
         container.appendChild(b);
     });
