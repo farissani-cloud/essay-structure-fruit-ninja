@@ -1,13 +1,250 @@
-// --- UPDATED QUESTION POOL LOGIC ---
-// To use the new 25 questions, replace the masterQuestions array with the JSON above.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tropical Essay Slice - Academic Mastery</title>
+    <style>
+        :root {
+            --ocean-blue: #0077be;
+            --sand-yellow: #f4d03f;
+            --palm-green: #2ecc71;
+            --sunset-orange: #e67e22;
+            --hibiscus-pink: #ff69b4;
+            --text-dark: #2c3e50;
+            --bg-light: #fdfaf0;
+            --danger-red: #e74c3c;
+        }
 
-let questionPool = [...masterQuestions]; // Initialize pool
-let currentQuestionIndex = 0; // Track position for sequence
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-light);
+            font-family: 'Verdana', sans-serif;
+            color: var(--text-dark);
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw; height: 100vh;
+            background: linear-gradient(to bottom, #87CEEB 0%, #fdfaf0 100%);
+            transition: background 0.1s;
+        }
+
+        canvas { display: block; }
+
+        #ui-layer {
+            position: absolute;
+            top: 10px; left: 10px;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 3px solid var(--sand-yellow);
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 300;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            justify-content: center; align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fffaf0;
+            padding: 25px;
+            border-radius: 20px;
+            border: 6px solid var(--sand-yellow);
+            max-width: 85%;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: center;
+        }
+
+        .option-btn {
+            display: block; width: 100%;
+            padding: 12px; margin: 8px 0;
+            background: #fff;
+            border: 2px solid var(--ocean-blue);
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .btn-action {
+            padding: 15px 30px;
+            background: var(--sunset-orange);
+            color: white;
+            border-radius: 30px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .flash-red { background: var(--danger-red) !important; }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="ui-layer">
+        <b>Writing Skills Mastery</b><br>
+        Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
+        Questions Left: <span id="q-left">25</span>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="start-screen" class="modal" style="display: flex;">
+        <div class="modal-content">
+            <h1 style="color: var(--ocean-blue)">Tropical Slice: Essay Edition</h1>
+            <p>Master the Academic Essay structure!<br>Slice fruit to answer 25 sequential questions.<br>Avoid the bombs!</p>
+            <button class="btn-action" onclick="startGame()">START SESSION</button>
+        </div>
+    </div>
+
+    <div id="question-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="color: var(--palm-green)">Concept Check</h2>
+            <p id="question-text" style="font-weight: bold;"></p>
+            <div id="options-container"></div>
+            <div id="answer-feedback" style="font-weight: bold; margin: 10px; min-height: 20px; font-size: 0.85em;"></div>
+            <button id="continue-btn" class="btn-action" style="display:none;">CONTINUE SLICING</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- FULL QUESTION DATABASE (25 QUESTIONS) ---
+const masterQuestions = [
+    { q: "What is an academic essay?", options: ["A creative story for friends", "A formal piece of writing presenting an argument or analysis", "A list of personal opinions without a topic", "A short poem"], answer: 1, rationale: "Academic essays are formal pieces for argument or analysis aimed at academic readers." },
+    { q: "Which type of essay explores similarities and differences?", options: ["Descriptive", "Narrative", "Compare and Contrast", "Expository"], answer: 2, rationale: "Compare and contrast essays specifically examine similarities and differences." },
+    { q: "Which component typically follows the Introduction?", options: ["Conclusion", "Body Paragraph 1", "Bibliography", "Hook"], answer: 1, rationale: "The basic structure flows from Introduction to the first Body Paragraph." },
+    { q: "What are the three essential parts of an Introduction?", options: ["Topic, Evidence, Explanation", "Hook, Background, Thesis", "Restatement, Summary, Final Thoughts", "Anecdote, Statistics, Quotes"], answer: 1, rationale: "A proper introduction contains a hook, background info, and a thesis statement." },
+    { q: "What is the primary purpose of a 'Hook'?", options: ["To summarize the argument", "To grab attention", "To provide technical definitions", "To list sources"], answer: 1, rationale: "Hooks are designed to grab the reader's attention immediately." },
+    { q: "Which hook uses a short, personal story?", options: ["Statistic", "Anecdote", "Vivid description", "Intriguing Question"], answer: 1, rationale: "An anecdote is a short personal story relating to the topic." },
+    { q: "What does a 'Vivid Description' hook aim to do?", options: ["Present hard data", "Use an evocative image to set a mood", "Ask a direct question", "Quote a famous person"], answer: 1, rationale: "Vivid descriptions use sensory imagery to set a specific mood." },
+    { q: "An WHO stat about water access is an example of what hook?", options: ["Anecdote", "Quote", "Statistic or Fact", "Vivid Description"], answer: 2, rationale: "Using data points from organizations like WHO is a Statistic/Fact hook." },
+    { q: "What is the role of 'Background Information'?", options: ["State the main argument", "Provide context and definitions", "Conclude the paragraph", "Present evidence"], answer: 1, rationale: "Background info provides the necessary context for the reader to understand the topic." },
+    { q: "What is the concise, one-sentence summary of the main argument?", options: ["Hook", "Topic Sentence", "Thesis Statement", "Supporting Detail"], answer: 2, rationale: "The thesis statement summarizes the entire argument and purpose." },
+    { q: "A thesis formula includes Topic, Claim, Conjunction, and...?", options: ["A list of quotes", "Three main points", "A bibliography", "A summary of the conclusion"], answer: 1, rationale: "Thesis statements typically outline the main points to be discussed." },
+    { q: "Where is a 'Topic Sentence' usually located?", options: ["Last sentence of the essay", "First sentence of a paragraph", "Middle of the introduction", "End of the bibliography"], answer: 1, rationale: "A topic sentence informs the reader what the paragraph is about, usually at the start." },
+    { q: "A topic sentence formula uses a Transition + Topic + Claim + ...?", options: ["Hook", "Main Point", "Evidence", "Final Thoughts"], answer: 1, rationale: "The formula is: Transitional expression + Topic + Claim + Main Point." },
+    { q: "A sentence focusing on one specific cause of pollution is likely a:", options: ["Thesis Statement", "Topic Sentence", "Hook", "Concluding Sentence"], answer: 1, rationale: "Topic sentences focus on a single main idea for one paragraph." },
+    { q: "What should a paragraph's Concluding Sentence do?", options: ["Introduce the next topic", "Summarize the idea and give a final thought", "Give first evidence", "State background info"], answer: 1, rationale: "It wraps up the paragraph with a summary and a final reflection." },
+    { q: "In the conclusion, what is the purpose of a 'Restatement'?", options: ["Repeat the thesis exactly", "Rephrase the argument in new words", "Provide a new hook", "Add new evidence"], answer: 1, rationale: "Restatements remind the reader of the central point without exact word-for-word repetition." },
+    { q: "Which is NOT a type of supporting detail mentioned in the text?", options: ["Expert opinions", "Random guesses", "Definitions", "Anecdotes"], answer: 1, rationale: "Academic writing requires credible evidence, not random guesses." },
+    { q: "In the 'Point-by-Point Method', what follows Evidence?", options: ["Topic Sentence", "Example and Explanation", "Thesis Statement", "Bibliography"], answer: 1, rationale: "In body paragraphs, evidence is followed by specific examples and explanations." },
+    { q: "Which transition is best for ADDING information?", options: ["As a result", "Furthermore", "While", "Thus"], answer: 1, rationale: "'Furthermore' and 'In addition' are used to add points to an argument." },
+    { q: "The Conclusion section consists of:", options: ["Hook, Context, Argument", "Restate Thesis, Restate Topics, Concluding Statement", "Point 1, 2, 3", "Transition, Claim, Reason"], answer: 1, rationale: "The conclusion wraps up by restating the thesis/points and giving a final statement." },
+    { q: "Why is 'TikTok' used as a central example in the text?", options: ["To teach video editing", "To demonstrate negative impacts for a sample thesis", "To encourage social media use", "To explain app history"], answer: 1, rationale: "TikTok's impact on teens is used as a consistent model for thesis and topic sentences." },
+    { q: "Which is an 'Intriguing Question' hook from the text?", options: ["What is the capital of Malaysia?", "Can one small act of kindness change a life?", "How many hours do you use TikTok?", "Is social media good?"], answer: 1, rationale: "The text highlights profound questions designed to spark curiosity." },
+    { q: "What should the final 'Concluding Statement' of an essay provide?", options: ["Personal hobbies", "A final thought or look into the future", "A repeat of the first sentence", "A definition of a hook"], answer: 1, rationale: "It leaves the reader with a lasting impression or a future perspective." },
+    { q: "Why should cell phone use while driving be banned according to the text?", options: ["It makes drivers happy", "It causes distractions and reduces reaction time", "It is expensive", "It is illegal everywhere"], answer: 1, rationale: "The sample essay focuses on the safety risks and distractions caused by phones." },
+    { q: "What does the transition 'Therefore' usually indicate?", options: ["A new story", "A logical conclusion or result", "A contrast", "An introductory hook"], answer: 1, rationale: "'Therefore' and 'Thus' signal a result based on previous info." }
+];
+
+// --- GAME STATE ---
+let currentQuestionIndex = 0;
+let score = 0, lives = 3, gameActive = false;
+let objects = [];
+let lastTime = 0;
+let mousePos = { x: 0, y: 0, prevX: 0, prevY: 0, down: false };
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+window.addEventListener('resize', resize); resize();
+
+class GameObject {
+    constructor(isBomb = false) {
+        this.radius = 45;
+        this.x = Math.random() * (canvas.width - 100) + 50;
+        this.y = canvas.height + this.radius;
+        this.gravity = canvas.height * 0.45; 
+        let verticalForce = Math.sqrt(2 * (canvas.height * 0.8) * this.gravity); 
+        this.vy = -verticalForce; 
+        this.vx = (Math.random() - 0.5) * (canvas.width * 0.2);
+        this.isBomb = isBomb;
+        this.label = isBomb ? '💣' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
+        this.sliced = false;
+    }
+    update(dt) {
+        this.x += this.vx * dt; this.y += this.vy * dt; this.vy += this.gravity * dt;
+        if(this.x < this.radius || this.x > canvas.width - this.radius) this.vx *= -1;
+    }
+    draw() {
+        ctx.font = `${this.radius * 1.5}px Arial`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(this.label, this.x, this.y);
+    }
+}
+
+function startGame() {
+    score = 0; lives = 3; currentQuestionIndex = 0;
+    document.getElementById('start-screen').style.display = 'none';
+    gameActive = true;
+    lastTime = performance.now();
+    updateUI();
+    requestAnimationFrame(gameLoop);
+}
+
+function gameLoop(timestamp) {
+    if (!gameActive) return;
+    let dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    if (dt > 0.1) dt = 0.1;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (Math.random() < 0.02) {
+        objects.push(new GameObject(Math.random() < 0.25));
+    }
+
+    for (let i = objects.length - 1; i >= 0; i--) {
+        let obj = objects[i]; obj.update(dt); obj.draw();
+        
+        if (mousePos.down && !obj.sliced) {
+            if (Math.hypot(obj.x - mousePos.x, obj.y - mousePos.y) < obj.radius * 1.5) {
+                obj.sliced = true;
+                if (obj.isBomb) {
+                    triggerBomb();
+                    objects.splice(i, 1);
+                } else {
+                    objects.splice(i, 1);
+                    gameActive = false; 
+                    triggerQuestion();
+                }
+            }
+        }
+
+        if (obj.y > canvas.height + 100) {
+            if (!obj.isBomb) { lives--; updateUI(); }
+            objects.splice(i, 1);
+            if (lives <= 0) endGame("Island Storm! You ran out of lives.");
+        }
+    }
+    drawSlice(); requestAnimationFrame(gameLoop);
+}
+
+function triggerBomb() {
+    lives--;
+    updateUI();
+    document.getElementById('game-container').classList.add('flash-red');
+    setTimeout(() => document.getElementById('game-container').classList.remove('flash-red'), 150);
+    if (lives <= 0) endGame("BOOM! Watch those bombs next time.");
+}
 
 function triggerQuestion() {
-    // Check if we have finished all questions
+    // End game if all 25 questions are finished
     if (currentQuestionIndex >= masterQuestions.length) {
-        endGame("Congratulations! You've mastered all the fragments.");
+        endGame("Congratulations! You've mastered all 25 writing fragments.");
         return;
     }
 
@@ -15,31 +252,27 @@ function triggerQuestion() {
     const container = document.getElementById('options-container');
     const feedback = document.getElementById('answer-feedback');
     
-    // Pick the NEXT question in sequence
+    // Pick the NEXT question in the sequence
     const q = masterQuestions[currentQuestionIndex]; 
-    currentQuestionIndex++; // Increment so we don't repeat
+    currentQuestionIndex++; // Move to next for future triggers
 
-    document.getElementById('question-text').innerText = q.question;
-    container.innerHTML = ""; 
-    feedback.innerText = "";
+    document.getElementById('question-text').innerText = q.q;
+    container.innerHTML = ""; feedback.innerText = "";
     document.getElementById('continue-btn').style.display = "none";
     
-    q.answerOptions.forEach((opt, idx) => {
+    q.options.forEach((opt, idx) => {
         const b = document.createElement('button');
-        b.className = 'option-btn'; 
-        b.innerText = opt.text;
+        b.className = 'option-btn'; b.innerText = opt;
         b.onclick = () => {
-            if (opt.isCorrect) {
-                score += 10; 
-                updateUI(); 
-                feedback.innerText = "Correct! 🌴\n" + opt.rationale;
+            if (idx === q.answer) {
+                score += 10; updateUI(); 
+                feedback.innerHTML = "CORRECT! 🌴<br>" + q.rationale;
                 feedback.style.color = "var(--palm-green)";
                 document.getElementById('continue-btn').style.display = "block";
                 Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
-                feedback.innerText = "Incorrect! " + opt.rationale;
-                score = Math.max(0, score - 5); 
-                updateUI();
+                feedback.innerText = "INCORRECT! -5 Points";
+                score = Math.max(0, score - 5); updateUI();
                 feedback.style.color = "var(--danger-red)";
             }
         };
@@ -48,9 +281,44 @@ function triggerQuestion() {
     modal.style.display = "flex";
 }
 
+document.getElementById('continue-btn').onclick = () => {
+    document.getElementById('question-modal').style.display = "none";
+    gameActive = true; lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
+};
+
 function updateUI() {
     document.getElementById('score').innerText = score;
     document.getElementById('lives').innerText = lives;
-    // Show remaining questions in sequence
     document.getElementById('q-left').innerText = masterQuestions.length - currentQuestionIndex;
 }
+
+function endGame(msg) { 
+    gameActive = false; 
+    alert(msg + "\nFinal Score: " + score); 
+    location.reload(); 
+}
+
+// --- INPUTS ---
+function handleIn(x, y, down) {
+    mousePos.prevX = mousePos.x; mousePos.prevY = mousePos.y;
+    mousePos.x = x; mousePos.y = y; mousePos.down = down;
+}
+canvas.addEventListener('mousedown', (e) => handleIn(e.clientX, e.clientY, true));
+canvas.addEventListener('mousemove', (e) => handleIn(e.clientX, e.clientY, mousePos.down));
+window.addEventListener('mouseup', () => mousePos.down = false);
+canvas.addEventListener('touchstart', (e) => handleIn(e.touches[0].clientX, e.touches[0].clientY, true), {passive:false});
+canvas.addEventListener('touchmove', (e) => { handleIn(e.touches[0].clientX, e.touches[0].clientY, true); e.preventDefault(); }, {passive:false});
+window.addEventListener('touchend', () => mousePos.down = false);
+
+function drawSlice() {
+    if (mousePos.down) {
+        ctx.beginPath(); ctx.moveTo(mousePos.prevX, mousePos.prevY);
+        ctx.lineTo(mousePos.x, mousePos.y); 
+        ctx.strokeStyle = "var(--hibiscus-pink)";
+        ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.stroke();
+    }
+}
+</script>
+</body>
+</html>
