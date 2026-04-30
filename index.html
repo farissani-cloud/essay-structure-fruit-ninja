@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Mastery Edition</title>
+    <title>Tropical Essay Slice - Audio Edition</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -38,15 +38,34 @@
         #ui-layer {
             position: absolute;
             top: 10px; left: 10px;
-            padding: 12px;
+            padding: 10px;
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.9);
-            border: 3px solid var(--sand-yellow);
+            border: 2px solid var(--sand-yellow);
             pointer-events: none;
             z-index: 10;
+            font-size: 14px;
         }
 
-        #timer-display { font-size: 1.2em; color: var(--danger-red); font-weight: bold; }
+        /* Music Toggle Button */
+        #music-ctrl {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 20;
+            background: white;
+            border: 2px solid var(--ocean-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #timer-display { color: var(--danger-red); font-weight: bold; }
 
         .modal {
             display: none;
@@ -59,9 +78,9 @@
 
         .modal-content {
             background-color: #fffaf0;
-            padding: 25px;
+            padding: 20px;
             border-radius: 20px;
-            border: 6px solid var(--sand-yellow);
+            border: 5px solid var(--sand-yellow);
             max-width: 85%;
             text-align: center;
         }
@@ -74,10 +93,11 @@
             border-radius: 10px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 14px;
         }
 
         .btn-action {
-            padding: 15px 30px;
+            padding: 12px 24px;
             background: var(--sunset-orange);
             color: white;
             border-radius: 30px;
@@ -99,29 +119,45 @@
         Progress: <span id="progress-text">0/25</span>
     </div>
 
+    <button id="music-ctrl" onclick="toggleMusic()">🔊</button>
+
+    <audio id="bg-music" loop>
+        <source src="your-audio-file.mp3" type="audio/mpeg">
+    </audio>
+
     <canvas id="gameCanvas"></canvas>
 
     <div id="start-screen" class="modal" style="display: flex;">
         <div class="modal-content">
-            <h1 style="color: var(--ocean-blue)">Tropical Slice: Essay Pro</h1>
-            <p>Answer all 25 questions to win.<br>Slice fruit to trigger the next unique question.<br>Avoid bombs and don't let fruit drop!</p>
+            <h1 style="color: var(--ocean-blue); font-size: 24px;">Tropical Slice</h1>
+            <p>Master the 25 fragments.<br>Avoid bombs!</p>
             <button class="btn-action" onclick="startGame()">START SESSION</button>
         </div>
     </div>
 
     <div id="question-modal" class="modal">
         <div class="modal-content">
-            <h2 style="color: var(--palm-green)">Concept Check</h2>
-            <p id="question-text" style="font-weight: bold;"></p>
+            <h2 style="color: var(--palm-green); font-size: 20px;">Concept Check</h2>
+            <p id="question-text" style="font-weight: bold; font-size: 15px;"></p>
             <div id="options-container"></div>
-            <div id="answer-feedback" style="font-weight: bold; margin: 10px; min-height: 20px;"></div>
+            <div id="answer-feedback" style="font-weight: bold; margin: 8px; min-height: 18px; font-size: 13px;"></div>
             <button id="continue-btn" class="btn-action" style="display:none;">CONTINUE</button>
         </div>
     </div>
 </div>
 
 <script>
-// --- FULL DATA RETAINED ---
+// --- AUDIO CONTROL ---
+const bgMusic = document.getElementById('bg-music');
+let isMuted = false;
+
+function toggleMusic() {
+    isMuted = !isMuted;
+    bgMusic.muted = isMuted;
+    document.getElementById('music-ctrl').innerText = isMuted ? '🔇' : '🔊';
+}
+
+// --- QUESTIONS (RETAINED) ---
 const masterQuestions = [
     { q: "What is an academic essay?", options: ["A creative story for friends", "A formal piece of writing presenting an argument or analysis", "A list of personal opinions without a topic", "A short poem"], answer: 1, rationale: "Academic essays are formal pieces for argument or analysis aimed at academic readers." },
     { q: "Which type of essay explores similarities and differences?", options: ["Descriptive", "Narrative", "Compare and Contrast", "Expository"], answer: 2, rationale: "Compare and contrast essays specifically examine similarities and differences." },
@@ -150,79 +186,72 @@ const masterQuestions = [
     { q: "What does the transition 'Therefore' usually indicate?", options: ["A new story", "A logical conclusion or result", "A contrast", "An introductory hook"], answer: 1, rationale: "'Therefore' and 'Thus' signal a result based on previous info." }
 ];
 
-// --- GAME ENGINE ---
+// --- GAME LOGIC ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let gameActive = false, score = 0, lives = 3, timeLeft = 420;
 let objects = [], particles = [], slicePoints = [];
 let questionQueue = [];
-const MAX_SLICE_POINTS = 6;
+let gravity, verticalPower;
 
-function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+function resize() { 
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight; 
+    gravity = canvas.height * 0.8; 
+    verticalPower = Math.sqrt(2 * (canvas.height * 0.82) * gravity);
+}
 window.addEventListener('resize', resize); resize();
 
 class FruitHalf {
     constructor(x, y, vx, vy, label, side) {
         this.x = x; this.y = y;
-        this.vx = vx + (side === 'left' ? -200 : 200);
+        this.vx = vx + (side === 'left' ? -150 : 150);
         this.vy = vy;
-        this.gravity = 800;
         this.label = label;
         this.angle = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 10;
+        this.rotationSpeed = (Math.random() - 0.5) * 8;
         this.side = side;
     }
     update(dt) {
         this.x += this.vx * dt; this.y += this.vy * dt;
-        this.vy += this.gravity * dt; this.angle += this.rotationSpeed * dt;
+        this.vy += gravity * dt; this.angle += this.rotationSpeed * dt;
     }
     draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
-        ctx.font = "60px Arial";
-        ctx.beginPath();
-        if(this.side === 'left') ctx.rect(-50, -50, 50, 100);
-        else ctx.rect(0, -50, 50, 100);
-        ctx.clip();
-        ctx.fillText(this.label, 0, 0);
-        ctx.restore();
+        ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+        ctx.font = "50px Arial"; ctx.beginPath();
+        if(this.side === 'left') ctx.rect(-50, -50, 50, 100); else ctx.rect(0, -50, 50, 100);
+        ctx.clip(); ctx.fillText(this.label, 0, 0); ctx.restore();
     }
 }
 
 class GameObject {
     constructor(isBomb = false) {
-        this.radius = 40;
+        this.radius = 35;
         this.x = Math.random() * (canvas.width - 100) + 50;
         this.y = canvas.height + 50;
-        this.vy = -Math.sqrt(2 * (canvas.height * 0.85) * 600); 
-        this.vx = (Math.random() - 0.5) * 300;
-        this.gravity = 600;
+        this.vy = -verticalPower; 
+        this.vx = (Math.random() - 0.5) * (canvas.width * 0.4); 
         this.isBomb = isBomb;
         this.label = isBomb ? '💣' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
     }
-    update(dt) { this.x += this.vx * dt; this.y += this.vy * dt; this.vy += this.gravity * dt; }
+    update(dt) { this.x += this.vx * dt; this.y += this.vy * dt; this.vy += gravity * dt; }
     draw() {
-        ctx.font = "60px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = "50px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillText(this.label, this.x, this.y);
     }
 }
 
 function startGame() {
-    score = 0; lives = 3; timeLeft = 420; objects = []; particles = [];
-    // Shuffle and Prepare Questions
-    questionQueue = [...masterQuestions].sort(() => Math.random() - 0.5);
+    // Start Audio on Interaction
+    bgMusic.play().catch(e => console.log("Audio playback requires interaction"));
     
+    score = 0; lives = 3; timeLeft = 420; objects = []; particles = [];
+    questionQueue = [...masterQuestions].sort(() => Math.random() - 0.5);
     document.getElementById('start-screen').style.display = 'none';
     gameActive = true;
     updateUI();
-
     const timer = setInterval(() => {
-        if(gameActive) {
-            timeLeft--;
-            updateUI();
-            if(timeLeft <= 0) { clearInterval(timer); endGame("Time Expired!"); }
-        }
+        if(gameActive) { timeLeft--; updateUI(); if(timeLeft <= 0) endGame("Time's Up!"); }
     }, 1000);
     requestAnimationFrame(gameLoop);
 }
@@ -234,54 +263,40 @@ function gameLoop() {
         requestAnimationFrame(gameLoop);
         return;
     }
-    let dt = 0.016; 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let dt = 0.016; ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (Math.random() < 0.025) objects.push(new GameObject(Math.random() < 0.2));
+    if (Math.random() < 0.02) objects.push(new GameObject(Math.random() < 0.15));
 
     for (let i = objects.length - 1; i >= 0; i--) {
-        let obj = objects[i];
-        obj.update(dt);
-        obj.draw();
+        let obj = objects[i]; obj.update(dt); obj.draw();
 
-        if (slicePoints.length > 2) {
+        if (slicePoints.length > 1) {
             let hit = false;
             for(let j=0; j<slicePoints.length-1; j++) {
-                if (lineCircleIntersect(slicePoints[j], slicePoints[j+1], obj, obj.radius)) {
-                    hit = true; break;
-                }
+                if (lineCircleIntersect(slicePoints[j], slicePoints[j+1], obj, obj.radius)) { hit = true; break; }
             }
-            
             if (hit) {
-                if (obj.isBomb) {
-                    triggerBomb();
-                } else {
+                if (obj.isBomb) { triggerBomb(); } 
+                else {
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'left'));
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'right'));
-                    gameActive = false;
-                    setTimeout(triggerQuestion, 150);
+                    gameActive = false; setTimeout(triggerQuestion, 150);
                 }
-                objects.splice(i, 1);
-                continue;
+                objects.splice(i, 1); continue;
             }
         }
-
         if (obj.y > canvas.height + 100) {
             if (!obj.isBomb) { lives--; updateUI(); }
             objects.splice(i, 1);
-            if (lives <= 0) endGame("Out of Lives!");
+            if (lives <= 0) endGame("Session Over!");
         }
     }
-
-    updateParticles(dt);
-    drawSlice();
-    requestAnimationFrame(gameLoop);
+    updateParticles(dt); drawSlice(); requestAnimationFrame(gameLoop);
 }
 
 function updateParticles(dt) {
     for (let i = particles.length - 1; i >= 0; i--) {
-        particles[i].update(dt);
-        particles[i].draw();
+        particles[i].update(dt); particles[i].draw();
         if (particles[i].y > canvas.height + 100) particles.splice(i, 1);
     }
 }
@@ -295,11 +310,10 @@ function lineCircleIntersect(p1, p2, circle, r) {
 
 function drawSlice() {
     if (slicePoints.length < 2) return;
-    ctx.beginPath(); ctx.strokeStyle = "white"; ctx.lineWidth = 4; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.lineCap = "round";
     ctx.moveTo(slicePoints[0].x, slicePoints[0].y);
     for(let p of slicePoints) ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    ctx.strokeStyle = "var(--hibiscus-pink)"; ctx.lineWidth = 2; ctx.stroke();
 }
 
 function triggerBomb() {
@@ -309,12 +323,8 @@ function triggerBomb() {
 }
 
 function triggerQuestion() {
-    if (questionQueue.length === 0) {
-        endGame("Mastery Complete! You answered all questions.");
-        return;
-    }
-
-    const q = questionQueue[0]; // Look at the first question in the shuffled queue
+    if (questionQueue.length === 0) { endGame("Success!"); return; }
+    const q = questionQueue[0];
     document.getElementById('question-text').innerText = q.q;
     const container = document.getElementById('options-container');
     container.innerHTML = "";
@@ -326,19 +336,14 @@ function triggerQuestion() {
         b.className = 'option-btn'; b.innerText = opt;
         b.onclick = () => {
             if (idx === q.answer) {
-                score += 10;
-                // Remove the question from the queue only when answered correctly
-                questionQueue.shift(); 
-                updateUI();
+                score += 10; questionQueue.shift(); updateUI();
                 document.getElementById('answer-feedback').innerText = "CORRECT! 🌴";
                 document.getElementById('continue-btn').style.display = "block";
                 Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
                 score = Math.max(0, score-5); updateUI();
-                document.getElementById('answer-feedback').innerText = "INCORRECT! Try that concept again later.";
-                // Move the missed question to the back of the queue
-                let missed = questionQueue.shift();
-                questionQueue.push(missed);
+                document.getElementById('answer-feedback').innerText = "TRY AGAIN LATER!";
+                questionQueue.push(questionQueue.shift());
                 document.getElementById('continue-btn').style.display = "block";
                 Array.from(container.children).forEach(btn => btn.disabled = true);
             }
@@ -350,8 +355,7 @@ function triggerQuestion() {
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
-    slicePoints = [];
-    gameActive = true;
+    slicePoints = []; gameActive = true;
 };
 
 function updateUI() {
@@ -362,12 +366,12 @@ function updateUI() {
     document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0'+s : s}`;
 }
 
-function endGame(msg) { alert(msg + "\nScore: " + score); location.reload(); }
+function endGame(msg) { alert(msg + "\nFinal Score: " + score); location.reload(); }
 
 function inputMove(x, y, isDown) {
     if(isDown) {
         slicePoints.push({x, y});
-        if(slicePoints.length > MAX_SLICE_POINTS) slicePoints.shift();
+        if(slicePoints.length > 5) slicePoints.shift();
     } else { slicePoints = []; }
 }
 canvas.addEventListener('mousemove', (e) => inputMove(e.clientX, e.clientY, e.buttons === 1));
