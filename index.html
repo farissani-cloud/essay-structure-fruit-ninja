@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Pro Edition</title>
+    <title>Tropical Essay Slice - Mastery Edition</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -95,15 +95,16 @@
     <div id="ui-layer">
         <b>Academic Mastery</b><br>
         Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
-        Time: <span id="timer-display">07:00</span>
+        Time: <span id="timer-display">07:00</span><br>
+        Progress: <span id="progress-text">0/25</span>
     </div>
 
     <canvas id="gameCanvas"></canvas>
 
     <div id="start-screen" class="modal" style="display: flex;">
         <div class="modal-content">
-            <h1 style="color: var(--ocean-blue)">Tropical Slice: Pro</h1>
-            <p>Slice the fruit to trigger questions.<br>Halves will fly when cut!</p>
+            <h1 style="color: var(--ocean-blue)">Tropical Slice: Essay Pro</h1>
+            <p>Answer all 25 questions to win.<br>Slice fruit to trigger the next unique question.<br>Avoid bombs and don't let fruit drop!</p>
             <button class="btn-action" onclick="startGame()">START SESSION</button>
         </div>
     </div>
@@ -120,11 +121,33 @@
 </div>
 
 <script>
-// --- DATA ---
+// --- FULL DATA RETAINED ---
 const masterQuestions = [
-    { q: "What is an academic essay?", options: ["Creative story", "Formal argument/analysis", "Opinion list", "Poem"], answer: 1, rationale: "Essays are formal pieces for argument or analysis." },
-    { q: "Which type explores similarities and differences?", options: ["Descriptive", "Narrative", "Compare and Contrast", "Expository"], answer: 2, rationale: "Compare and contrast specifically examines similarities/differences." },
-    // ... Additional 23 questions would go here as per your original list
+    { q: "What is an academic essay?", options: ["A creative story for friends", "A formal piece of writing presenting an argument or analysis", "A list of personal opinions without a topic", "A short poem"], answer: 1, rationale: "Academic essays are formal pieces for argument or analysis aimed at academic readers." },
+    { q: "Which type of essay explores similarities and differences?", options: ["Descriptive", "Narrative", "Compare and Contrast", "Expository"], answer: 2, rationale: "Compare and contrast essays specifically examine similarities and differences." },
+    { q: "Which component typically follows the Introduction?", options: ["Conclusion", "Body Paragraph 1", "Bibliography", "Hook"], answer: 1, rationale: "The basic structure flows from Introduction to the first Body Paragraph." },
+    { q: "What are the three essential parts of an Introduction?", options: ["Topic, Evidence, Explanation", "Hook, Background, Thesis", "Restatement, Summary, Final Thoughts", "Anecdote, Statistics, Quotes"], answer: 1, rationale: "A proper introduction contains a hook, background info, and a thesis statement." },
+    { q: "What is the primary purpose of a 'Hook'?", options: ["To summarize the argument", "To grab attention", "To provide technical definitions", "To list sources"], answer: 1, rationale: "Hooks are designed to grab the reader's attention immediately." },
+    { q: "Which hook uses a short, personal story?", options: ["Statistic", "Anecdote", "Vivid description", "Intriguing Question"], answer: 1, rationale: "An anecdote is a short personal story relating to the topic." },
+    { q: "What does a 'Vivid Description' hook aim to do?", options: ["Present hard data", "Use an evocative image to set a mood", "Ask a direct question", "Quote a famous person"], answer: 1, rationale: "Vivid descriptions use sensory imagery to set a specific mood." },
+    { q: "An WHO stat about water access is an example of what hook?", options: ["Anecdote", "Quote", "Statistic or Fact", "Vivid Description"], answer: 2, rationale: "Using data points from organizations like WHO is a Statistic/Fact hook." },
+    { q: "What is the role of 'Background Information'?", options: ["State the main argument", "Provide context and definitions", "Conclude the paragraph", "Present evidence"], answer: 1, rationale: "Background info provides the necessary context for the reader to understand the topic." },
+    { q: "What is the concise, one-sentence summary of the main argument?", options: ["Hook", "Topic Sentence", "Thesis Statement", "Supporting Detail"], answer: 2, rationale: "The thesis statement summarizes the entire argument and purpose." },
+    { q: "A thesis formula includes Topic, Claim, Conjunction, and...?", options: ["A list of quotes", "Three main points", "A bibliography", "A summary of the conclusion"], answer: 1, rationale: "Thesis statements typically outline the main points to be discussed." },
+    { q: "Where is a 'Topic Sentence' usually located?", options: ["Last sentence of the essay", "First sentence of a paragraph", "Middle of the introduction", "End of the bibliography"], answer: 1, rationale: "A topic sentence informs the reader what the paragraph is about, usually at the start." },
+    { q: "A topic sentence formula uses a Transition + Topic + Claim + ...?", options: ["Hook", "Main Point", "Evidence", "Final Thoughts"], answer: 1, rationale: "The formula is: Transitional expression + Topic + Claim + Main Point." },
+    { q: "A sentence focusing on one specific cause of pollution is likely a:", options: ["Thesis Statement", "Topic Sentence", "Hook", "Concluding Sentence"], answer: 1, rationale: "Topic sentences focus on a single main idea for one paragraph." },
+    { q: "What should a paragraph's Concluding Sentence do?", options: ["Introduce the next topic", "Summarize the idea and give a final thought", "Give first evidence", "State background info"], answer: 1, rationale: "It wraps up the paragraph with a summary and a final reflection." },
+    { q: "In the conclusion, what is the purpose of a 'Restatement'?", options: ["Repeat the thesis exactly", "Rephrase the argument in new words", "Provide a new hook", "Add new evidence"], answer: 1, rationale: "Restatements remind the reader of the central point without exact word-for-word repetition." },
+    { q: "Which is NOT a type of supporting detail mentioned in the text?", options: ["Expert opinions", "Random guesses", "Definitions", "Anecdotes"], answer: 1, rationale: "Academic writing requires credible evidence, not random guesses." },
+    { q: "In the 'Point-by-Point Method', what follows Evidence?", options: ["Topic Sentence", "Example and Explanation", "Thesis Statement", "Bibliography"], answer: 1, rationale: "In body paragraphs, evidence is followed by specific examples and explanations." },
+    { q: "Which transition is best for ADDING information?", options: ["As a result", "Furthermore", "While", "Thus"], answer: 1, rationale: "'Furthermore' and 'In addition' are used to add points to an argument." },
+    { q: "The Conclusion section consists of:", options: ["Hook, Context, Argument", "Restate Thesis, Restate Topics, Concluding Statement", "Point 1, 2, 3", "Transition, Claim, Reason"], answer: 1, rationale: "The conclusion wraps up by restating the thesis/points and giving a final statement." },
+    { q: "Why is 'TikTok' used as a central example in the text?", options: ["To teach video editing", "To demonstrate negative impacts for a sample thesis", "To encourage social media use", "To explain app history"], answer: 1, rationale: "TikTok's impact on teens is used as a consistent model for thesis and topic sentences." },
+    { q: "Which is an 'Intriguing Question' hook from the text?", options: ["What is the capital of Malaysia?", "Can one small act of kindness change a life?", "How many hours do you use TikTok?", "Is social media good?"], answer: 1, rationale: "The text highlights profound questions designed to spark curiosity." },
+    { q: "What should the final 'Concluding Statement' of an essay provide?", options: ["Personal hobbies", "A final thought or look into the future", "A repeat of the first sentence", "A definition of a hook"], answer: 1, rationale: "It leaves the reader with a lasting impression or a future perspective." },
+    { q: "Why should cell phone use while driving be banned according to the text?", options: ["It makes drivers happy", "It causes distractions and reduces reaction time", "It is expensive", "It is illegal everywhere"], answer: 1, rationale: "The sample essay focuses on the safety risks and distractions caused by phones." },
+    { q: "What does the transition 'Therefore' usually indicate?", options: ["A new story", "A logical conclusion or result", "A contrast", "An introductory hook"], answer: 1, rationale: "'Therefore' and 'Thus' signal a result based on previous info." }
 ];
 
 // --- GAME ENGINE ---
@@ -132,7 +155,7 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 let gameActive = false, score = 0, lives = 3, timeLeft = 420;
 let objects = [], particles = [], slicePoints = [];
-let currentQuestionIndex = 0;
+let questionQueue = [];
 const MAX_SLICE_POINTS = 6;
 
 function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
@@ -147,20 +170,17 @@ class FruitHalf {
         this.label = label;
         this.angle = 0;
         this.rotationSpeed = (Math.random() - 0.5) * 10;
-        this.side = side; // To clip the emoji
+        this.side = side;
     }
     update(dt) {
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
-        this.vy += this.gravity * dt;
-        this.angle += this.rotationSpeed * dt;
+        this.x += this.vx * dt; this.y += this.vy * dt;
+        this.vy += this.gravity * dt; this.angle += this.rotationSpeed * dt;
     }
     draw() {
         ctx.save();
         ctx.translate(this.x, this.y);
         ctx.rotate(this.angle);
         ctx.font = "60px Arial";
-        // Clip to show only half
         ctx.beginPath();
         if(this.side === 'left') ctx.rect(-50, -50, 50, 100);
         else ctx.rect(0, -50, 50, 100);
@@ -181,29 +201,34 @@ class GameObject {
         this.isBomb = isBomb;
         this.label = isBomb ? '💣' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
     }
-    update(dt) {
-        this.x += this.vx * dt;
-        this.y += this.vy * dt;
-        this.vy += this.gravity * dt;
-    }
+    update(dt) { this.x += this.vx * dt; this.y += this.vy * dt; this.vy += this.gravity * dt; }
     draw() {
-        ctx.font = "60px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
+        ctx.font = "60px Arial"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillText(this.label, this.x, this.y);
     }
 }
 
 function startGame() {
     score = 0; lives = 3; timeLeft = 420; objects = []; particles = [];
+    // Shuffle and Prepare Questions
+    questionQueue = [...masterQuestions].sort(() => Math.random() - 0.5);
+    
     document.getElementById('start-screen').style.display = 'none';
     gameActive = true;
-    setInterval(() => { if(gameActive) { timeLeft--; updateUI(); if(timeLeft<=0) endGame("Time Up!"); } }, 1000);
+    updateUI();
+
+    const timer = setInterval(() => {
+        if(gameActive) {
+            timeLeft--;
+            updateUI();
+            if(timeLeft <= 0) { clearInterval(timer); endGame("Time Expired!"); }
+        }
+    }, 1000);
     requestAnimationFrame(gameLoop);
 }
 
-function gameLoop(timestamp) {
-    if (!gameActive) { // Still update particles while paused for questions
+function gameLoop() {
+    if (!gameActive) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         updateParticles(0.016);
         requestAnimationFrame(gameLoop);
@@ -212,15 +237,13 @@ function gameLoop(timestamp) {
     let dt = 0.016; 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (Math.random() < 0.03) objects.push(new GameObject(Math.random() < 0.2));
+    if (Math.random() < 0.025) objects.push(new GameObject(Math.random() < 0.2));
 
-    // Handle Objects
     for (let i = objects.length - 1; i >= 0; i--) {
         let obj = objects[i];
         obj.update(dt);
         obj.draw();
 
-        // Strict Line Intersection for Slicing
         if (slicePoints.length > 2) {
             let hit = false;
             for(let j=0; j<slicePoints.length-1; j++) {
@@ -233,11 +256,10 @@ function gameLoop(timestamp) {
                 if (obj.isBomb) {
                     triggerBomb();
                 } else {
-                    // Create halves
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'left'));
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'right'));
                     gameActive = false;
-                    setTimeout(triggerQuestion, 100);
+                    setTimeout(triggerQuestion, 150);
                 }
                 objects.splice(i, 1);
                 continue;
@@ -247,7 +269,7 @@ function gameLoop(timestamp) {
         if (obj.y > canvas.height + 100) {
             if (!obj.isBomb) { lives--; updateUI(); }
             objects.splice(i, 1);
-            if (lives <= 0) endGame("Game Over!");
+            if (lives <= 0) endGame("Out of Lives!");
         }
     }
 
@@ -264,36 +286,22 @@ function updateParticles(dt) {
     }
 }
 
-// Math for accurate slicing
 function lineCircleIntersect(p1, p2, circle, r) {
-    let dx = p2.x - p1.x;
-    let dy = p2.y - p1.y;
-    let l_sq = dx*dx + dy*dy;
+    let dx = p2.x - p1.x, dy = p2.y - p1.y, l_sq = dx*dx + dy*dy;
     if (l_sq === 0) return false;
-    let t = ((circle.x - p1.x) * dx + (circle.y - p1.y) * dy) / l_sq;
-    t = Math.max(0, Math.min(1, t));
-    let closestX = p1.x + t * dx;
-    let closestY = p1.y + t * dy;
-    let distSq = (circle.x - closestX)**2 + (circle.y - closestY)**2;
-    return distSq < r*r;
+    let t = Math.max(0, Math.min(1, ((circle.x - p1.x) * dx + (circle.y - p1.y) * dy) / l_sq));
+    return ((circle.x - (p1.x + t * dx))**2 + (circle.y - (p1.y + t * dy))**2) < r*r;
 }
 
 function drawSlice() {
     if (slicePoints.length < 2) return;
-    ctx.beginPath();
-    ctx.strokeStyle = "white";
-    ctx.lineWidth = 4;
-    ctx.lineCap = "round";
+    ctx.beginPath(); ctx.strokeStyle = "white"; ctx.lineWidth = 4; ctx.lineCap = "round";
     ctx.moveTo(slicePoints[0].x, slicePoints[0].y);
     for(let p of slicePoints) ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    // Inner glow
-    ctx.strokeStyle = "var(--hibiscus-pink)";
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    ctx.strokeStyle = "var(--hibiscus-pink)"; ctx.lineWidth = 2; ctx.stroke();
 }
 
-// --- UI & QUESTIONS ---
 function triggerBomb() {
     lives--; updateUI();
     document.body.classList.add('flash-red');
@@ -301,8 +309,12 @@ function triggerBomb() {
 }
 
 function triggerQuestion() {
-    const q = masterQuestions[currentQuestionIndex % masterQuestions.length];
-    currentQuestionIndex++;
+    if (questionQueue.length === 0) {
+        endGame("Mastery Complete! You answered all questions.");
+        return;
+    }
+
+    const q = questionQueue[0]; // Look at the first question in the shuffled queue
     document.getElementById('question-text').innerText = q.q;
     const container = document.getElementById('options-container');
     container.innerHTML = "";
@@ -314,13 +326,21 @@ function triggerQuestion() {
         b.className = 'option-btn'; b.innerText = opt;
         b.onclick = () => {
             if (idx === q.answer) {
-                score += 10; updateUI();
-                document.getElementById('answer-feedback').innerText = "CLEAN CUT! 🌴";
+                score += 10;
+                // Remove the question from the queue only when answered correctly
+                questionQueue.shift(); 
+                updateUI();
+                document.getElementById('answer-feedback').innerText = "CORRECT! 🌴";
                 document.getElementById('continue-btn').style.display = "block";
                 Array.from(container.children).forEach(btn => btn.disabled = true);
             } else {
                 score = Math.max(0, score-5); updateUI();
-                document.getElementById('answer-feedback').innerText = "DULL BLADE! (-5)";
+                document.getElementById('answer-feedback').innerText = "INCORRECT! Try that concept again later.";
+                // Move the missed question to the back of the queue
+                let missed = questionQueue.shift();
+                questionQueue.push(missed);
+                document.getElementById('continue-btn').style.display = "block";
+                Array.from(container.children).forEach(btn => btn.disabled = true);
             }
         };
         container.appendChild(b);
@@ -330,26 +350,25 @@ function triggerQuestion() {
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
+    slicePoints = [];
     gameActive = true;
 };
 
 function updateUI() {
     document.getElementById('score').innerText = score;
     document.getElementById('lives').innerText = lives;
+    document.getElementById('progress-text').innerText = `${25 - questionQueue.length}/25`;
     let m = Math.floor(timeLeft/60), s = timeLeft%60;
     document.getElementById('timer-display').innerText = `${m}:${s < 10 ? '0'+s : s}`;
 }
 
 function endGame(msg) { alert(msg + "\nScore: " + score); location.reload(); }
 
-// --- INPUTS ---
 function inputMove(x, y, isDown) {
     if(isDown) {
         slicePoints.push({x, y});
         if(slicePoints.length > MAX_SLICE_POINTS) slicePoints.shift();
-    } else {
-        slicePoints = [];
-    }
+    } else { slicePoints = []; }
 }
 canvas.addEventListener('mousemove', (e) => inputMove(e.clientX, e.clientY, e.buttons === 1));
 canvas.addEventListener('mousedown', (e) => { slicePoints = []; inputMove(e.clientX, e.clientY, true); });
