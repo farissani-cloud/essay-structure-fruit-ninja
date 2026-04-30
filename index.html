@@ -47,6 +47,12 @@
             z-index: 10;
         }
 
+        #timer-display {
+            font-size: 1.2em;
+            color: var(--danger-red);
+            font-weight: bold;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -98,6 +104,7 @@
     <div id="ui-layer">
         <b>Writing Skills Mastery</b><br>
         Score: <span id="score">0</span> | Lives: <span id="lives">3</span><br>
+        Time: <span id="timer-display">07:00</span><br>
         Questions Left: <span id="q-left">25</span>
     </div>
 
@@ -107,6 +114,7 @@
         <div class="modal-content">
             <h1 style="color: var(--ocean-blue)">Tropical Slice: Essay Edition</h1>
             <p>Master the Academic Essay structure!<br>Slice fruit to answer 25 sequential questions.<br>Avoid the bombs!</p>
+            <p><b>Time Limit: 7 Minutes</b></p>
             <button class="btn-action" onclick="startGame()">START SESSION</button>
         </div>
     </div>
@@ -123,7 +131,6 @@
 </div>
 
 <script>
-// --- FULL QUESTION DATABASE (25 QUESTIONS) ---
 const masterQuestions = [
     { q: "What is an academic essay?", options: ["A creative story for friends", "A formal piece of writing presenting an argument or analysis", "A list of personal opinions without a topic", "A short poem"], answer: 1, rationale: "Academic essays are formal pieces for argument or analysis aimed at academic readers." },
     { q: "Which type of essay explores similarities and differences?", options: ["Descriptive", "Narrative", "Compare and Contrast", "Expository"], answer: 2, rationale: "Compare and contrast essays specifically examine similarities and differences." },
@@ -152,17 +159,28 @@ const masterQuestions = [
     { q: "What does the transition 'Therefore' usually indicate?", options: ["A new story", "A logical conclusion or result", "A contrast", "An introductory hook"], answer: 1, rationale: "'Therefore' and 'Thus' signal a result based on previous info." }
 ];
 
-// --- GAME STATE ---
 let currentQuestionIndex = 0;
 let score = 0, lives = 3, gameActive = false;
+let timeLeft = 420; // 7 minutes in seconds
+let timerInterval;
 let objects = [];
 let lastTime = 0;
-let mousePos = { x: 0, y: 0, prevX: 0, prevY: 0, down: false };
+
+// Trailing Slash Effect
+let slicePoints = [];
+const MAX_SLICE_POINTS = 8; 
+
+let mousePos = { x: 0, y: 0, down: false };
 
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-window.addEventListener('resize', resize); resize();
+
+function resize() { 
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight; 
+}
+window.addEventListener('resize', resize); 
+resize();
 
 class GameObject {
     constructor(isBomb = false) {
@@ -172,27 +190,43 @@ class GameObject {
         this.gravity = canvas.height * 0.45; 
         let verticalForce = Math.sqrt(2 * (canvas.height * 0.8) * this.gravity); 
         this.vy = -verticalForce; 
-        this.vx = (Math.random() - 0.5) * (canvas.width * 0.2);
+        this.vx = (Math.random() - 0.5) * (canvas.width * 0.25);
         this.isBomb = isBomb;
         this.label = isBomb ? '💣' : ['🍍', '🥭', '🥥', '🍌', '🍉'][Math.floor(Math.random()*5)];
         this.sliced = false;
     }
     update(dt) {
-        this.x += this.vx * dt; this.y += this.vy * dt; this.vy += this.gravity * dt;
+        this.x += this.vx * dt; 
+        this.y += this.vy * dt; 
+        this.vy += this.gravity * dt;
         if(this.x < this.radius || this.x > canvas.width - this.radius) this.vx *= -1;
     }
     draw() {
-        ctx.font = `${this.radius * 1.5}px Arial`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = `${this.radius * 1.5}px Arial`; 
+        ctx.textAlign = "center"; 
+        ctx.textBaseline = "middle";
         ctx.fillText(this.label, this.x, this.y);
     }
 }
 
 function startGame() {
-    score = 0; lives = 3; currentQuestionIndex = 0;
+    score = 0; lives = 3; currentQuestionIndex = 0; timeLeft = 420;
+    objects = []; slicePoints = [];
     document.getElementById('start-screen').style.display = 'none';
     gameActive = true;
     lastTime = performance.now();
     updateUI();
+    
+    // Start Timer
+    if(timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        if(gameActive) {
+            timeLeft--;
+            updateUI();
+            if(timeLeft <= 0) endGame("Time's Up! The tropical sun has set.");
+        }
+    }, 1000);
+
     requestAnimationFrame(gameLoop);
 }
 
@@ -203,14 +237,19 @@ function gameLoop(timestamp) {
     if (dt > 0.1) dt = 0.1;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    if (Math.random() < 0.02) {
-        objects.push(new GameObject(Math.random() < 0.25));
+    // Spawn objects
+    if (Math.random() < 0.025) {
+        objects.push(new GameObject(Math.random() < 0.2));
     }
 
+    // Process Objects
     for (let i = objects.length - 1; i >= 0; i--) {
-        let obj = objects[i]; obj.update(dt); obj.draw();
+        let obj = objects[i]; 
+        obj.update(dt); 
+        obj.draw();
         
-        if (mousePos.down && !obj.sliced) {
+        // Collision Detection with Slice
+        if (mousePos.down && !obj.sliced && slicePoints.length > 1) {
             if (Math.hypot(obj.x - mousePos.x, obj.y - mousePos.y) < obj.radius * 1.5) {
                 obj.sliced = true;
                 if (obj.isBomb) {
@@ -230,7 +269,29 @@ function gameLoop(timestamp) {
             if (lives <= 0) endGame("Island Storm! You ran out of lives.");
         }
     }
-    drawSlice(); requestAnimationFrame(gameLoop);
+
+    drawSlice(); 
+    requestAnimationFrame(gameLoop);
+}
+
+function drawSlice() {
+    if (mousePos.down && slicePoints.length > 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = "var(--hibiscus-pink)";
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+
+        for (let i = 0; i < slicePoints.length - 1; i++) {
+            let p1 = slicePoints[i];
+            let p2 = slicePoints[i+1];
+            // Taper the line width based on age of point
+            ctx.lineWidth = (i / slicePoints.length) * 10; 
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+        }
+    }
 }
 
 function triggerBomb() {
@@ -242,7 +303,6 @@ function triggerBomb() {
 }
 
 function triggerQuestion() {
-    // End game if all 25 questions are finished
     if (currentQuestionIndex >= masterQuestions.length) {
         endGame("Congratulations! You've mastered all 25 writing fragments.");
         return;
@@ -252,9 +312,8 @@ function triggerQuestion() {
     const container = document.getElementById('options-container');
     const feedback = document.getElementById('answer-feedback');
     
-    // Pick the NEXT question in the sequence
     const q = masterQuestions[currentQuestionIndex]; 
-    currentQuestionIndex++; // Move to next for future triggers
+    currentQuestionIndex++; 
 
     document.getElementById('question-text').innerText = q.q;
     container.innerHTML = ""; feedback.innerText = "";
@@ -283,7 +342,9 @@ function triggerQuestion() {
 
 document.getElementById('continue-btn').onclick = () => {
     document.getElementById('question-modal').style.display = "none";
-    gameActive = true; lastTime = performance.now();
+    gameActive = true; 
+    lastTime = performance.now();
+    slicePoints = []; // Clear old points
     requestAnimationFrame(gameLoop);
 };
 
@@ -291,34 +352,63 @@ function updateUI() {
     document.getElementById('score').innerText = score;
     document.getElementById('lives').innerText = lives;
     document.getElementById('q-left').innerText = masterQuestions.length - currentQuestionIndex;
+    
+    let mins = Math.floor(timeLeft / 60);
+    let secs = timeLeft % 60;
+    document.getElementById('timer-display').innerText = 
+        `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
 }
 
 function endGame(msg) { 
     gameActive = false; 
+    clearInterval(timerInterval);
     alert(msg + "\nFinal Score: " + score); 
     location.reload(); 
 }
 
-// --- INPUTS ---
-function handleIn(x, y, down) {
-    mousePos.prevX = mousePos.x; mousePos.prevY = mousePos.y;
-    mousePos.x = x; mousePos.y = y; mousePos.down = down;
-}
-canvas.addEventListener('mousedown', (e) => handleIn(e.clientX, e.clientY, true));
-canvas.addEventListener('mousemove', (e) => handleIn(e.clientX, e.clientY, mousePos.down));
-window.addEventListener('mouseup', () => mousePos.down = false);
-canvas.addEventListener('touchstart', (e) => handleIn(e.touches[0].clientX, e.touches[0].clientY, true), {passive:false});
-canvas.addEventListener('touchmove', (e) => { handleIn(e.touches[0].clientX, e.touches[0].clientY, true); e.preventDefault(); }, {passive:false});
-window.addEventListener('touchend', () => mousePos.down = false);
-
-function drawSlice() {
+// --- UPDATED INPUTS FOR BETTER MOTION ---
+function handleMove(x, y) {
+    mousePos.x = x;
+    mousePos.y = y;
     if (mousePos.down) {
-        ctx.beginPath(); ctx.moveTo(mousePos.prevX, mousePos.prevY);
-        ctx.lineTo(mousePos.x, mousePos.y); 
-        ctx.strokeStyle = "var(--hibiscus-pink)";
-        ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.stroke();
+        slicePoints.push({x, y});
+        if (slicePoints.length > MAX_SLICE_POINTS) {
+            slicePoints.shift();
+        }
     }
 }
+
+canvas.addEventListener('mousedown', (e) => {
+    mousePos.down = true;
+    slicePoints = [];
+    handleMove(e.clientX, e.clientY);
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    handleMove(e.clientX, e.clientY);
+});
+
+window.addEventListener('mouseup', () => {
+    mousePos.down = false;
+    slicePoints = [];
+});
+
+canvas.addEventListener('touchstart', (e) => {
+    mousePos.down = true;
+    slicePoints = [];
+    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    e.preventDefault();
+}, {passive:false});
+
+canvas.addEventListener('touchmove', (e) => {
+    handleMove(e.touches[0].clientX, e.touches[0].clientY);
+    e.preventDefault();
+}, {passive:false});
+
+window.addEventListener('touchend', () => {
+    mousePos.down = false;
+    slicePoints = [];
+});
 </script>
 </body>
 </html>
