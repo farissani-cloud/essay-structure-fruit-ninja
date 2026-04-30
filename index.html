@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tropical Essay Slice - Mastery Edition</title>
+    <title>Tropical Essay Slice - Sound Fixed</title>
     <style>
         :root {
             --ocean-blue: #0077be;
@@ -130,7 +130,10 @@
     <button id="music-ctrl" onclick="toggleMusic()">🔊</button>
 
     <audio id="bg-music" loop>
-        <source src="your-tropical-audio.mp3" type="audio/mpeg">
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="slash-sound">
+        <source src="https://actions.google.com/sounds/v1/foley/sword_clash.ogg" type="audio/ogg">
     </audio>
 
     <canvas id="gameCanvas"></canvas>
@@ -159,14 +162,24 @@
 <script>
 // --- AUDIO CONTROL ---
 const bgMusic = document.getElementById('bg-music');
+const slashSound = document.getElementById('slash-sound');
 let isMuted = false;
+
 function toggleMusic() {
     isMuted = !isMuted;
     bgMusic.muted = isMuted;
+    slashSound.muted = isMuted;
     document.getElementById('music-ctrl').innerText = isMuted ? '🔇' : '🔊';
 }
 
-// --- FULL QUESTION DATA RETAINED ---
+function playSlash() {
+    if (!isMuted) {
+        slashSound.currentTime = 0; // Reset to start for rapid clicks
+        slashSound.play().catch(e => {});
+    }
+}
+
+// --- FULL QUESTION DATA ---
 const masterQuestions = [
     { q: "What is an academic essay?", options: ["A creative story for friends", "A formal piece of writing presenting an argument or analysis", "A list of personal opinions without a topic", "A short poem"], answer: 1 },
     { q: "Which type of essay explores similarities and differences?", options: ["Descriptive", "Narrative", "Compare and Contrast", "Expository"], answer: 2 },
@@ -303,6 +316,7 @@ function gameLoop() {
                 if (obj.isBomb) { 
                     triggerBomb(); 
                 } else {
+                    playSlash(); // PLAY SOUND EFFECT
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'left'));
                     particles.push(new FruitHalf(obj.x, obj.y, obj.vx, obj.vy, obj.label, 'right'));
                     gameActive = false; 
